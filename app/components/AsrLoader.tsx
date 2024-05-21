@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 interface AsrLoaderProps {
@@ -12,34 +10,46 @@ const AsrLoader: React.FC<AsrLoaderProps> = ({ onReady }) => {
   useEffect(() => {
     const loadAsrModule = async () => {
       try {
-        // Create a script element to load the main JS file
+        console.log("Starting to load ASR module");
         const script = document.createElement("script");
-        script.src = "/wasm/sherpa-ncnn-wasm-main.js"; // Updated path here
+        script.src = "/wasm/sherpa-ncnn-wasm-main.js";
         script.async = true;
+
         script.onload = () => {
-          // Initialize the Module object
-          const Module: any = {
-            locateFile: (path: string, scriptDirectory: string) => {
-              if (path.endsWith(".wasm") || path.endsWith(".data")) {
-                return "/wasm/" + path; // Updated path here
+          console.log("Script loaded");
+
+          const waitForModule = () => {
+            if (window.Module) {
+              console.log("Module object is defined");
+              window.Module.onRuntimeInitialized = () => {
+                console.log("Runtime initialized");
+                if (window.Module.createRecognizer) {
+                  console.log("createRecognizer function found on Module");
+                  const recognizerInstance = window.Module.createRecognizer();
+                  console.log("Recognizer created", recognizerInstance);
+                  onReady(recognizerInstance);
+                  setLoading(false);
+                } else {
+                  console.error(
+                    "createRecognizer function is not defined on Module."
+                  );
+                  setLoading(false);
+                }
+              };
+
+              if (window.Module.calledRun) {
+                console.log(
+                  "Runtime already initialized, calling onRuntimeInitialized directly"
+                );
+                window.Module.onRuntimeInitialized();
               }
-              return scriptDirectory + path;
-            },
-            onRuntimeInitialized: () => {
-              console.log("ASR model initialized!");
-              const recognizerInstance = (
-                window as any
-              ).Module.createRecognizer();
-              onReady(recognizerInstance);
-              setLoading(false);
-            },
+            } else {
+              console.error("Module object is not defined. Retrying...");
+              setTimeout(waitForModule, 100); // Retry after 100ms
+            }
           };
 
-          // Assign the Module to window object so the loaded script can access it
-          (window as any).Module = Module;
-
-          // Initialize the module
-          (window as any).Module.onRuntimeInitialized();
+          waitForModule();
         };
 
         script.onerror = (err) => {
