@@ -1,4 +1,3 @@
-(function() {
 var Module = typeof Module != "undefined" ? Module : {};
 var ENVIRONMENT_IS_WEB = typeof window == "object";
 var ENVIRONMENT_IS_WORKER = typeof importScripts == "function";
@@ -20,7 +19,7 @@ Module.expectedDataFileDownloads++;
         } else if (typeof process === "undefined" && typeof location !== "undefined") {
             PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf("/")) + "/")
         }
-        var PACKAGE_NAME = "wasm/sherpa-ncnn-wasm-main.data";
+        var PACKAGE_NAME = "../bin/sherpa-ncnn-wasm-main.data";
         var REMOTE_PACKAGE_BASE = "wasm/sherpa-ncnn-wasm-main.data";
         if (typeof Module["locateFilePackage"] === "function" && !Module["locateFile"]) {
             Module["locateFile"] = Module["locateFilePackage"];
@@ -3616,4 +3615,3 @@ if (Module["preInit"]) {
     }
 }
 run();
-})();
