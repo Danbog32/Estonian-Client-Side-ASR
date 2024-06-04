@@ -146,7 +146,7 @@ function initSherpaNcnnRecognizerConfig(config, Module) {
   }
 }
 
-(function() {
+(function () {
   if (typeof window.Stream === 'undefined') {
     class Stream {
       constructor(handle, Module) {
@@ -166,27 +166,21 @@ function initSherpaNcnnRecognizerConfig(config, Module) {
         }
       }
 
-      /**
-       * @param sampleRate {Number}
-       * @param samples {Float32Array} Containing samples in the range [-1, 1]
-       */
       acceptWaveform(sampleRate, samples) {
         if (this.n < samples.length) {
           this.Module._free(this.pointer);
-          this.pointer =
-              this.Module._malloc(samples.length * samples.BYTES_PER_ELEMENT);
+          this.pointer = this.Module._malloc(samples.length * samples.BYTES_PER_ELEMENT);
           this.n = samples.length;
         }
 
         this.Module.HEAPF32.set(samples, this.pointer / samples.BYTES_PER_ELEMENT);
-        this.Module._AcceptWaveform(
-            this.handle, sampleRate, this.pointer, samples.length);
+        this.Module._AcceptWaveform(this.handle, sampleRate, this.pointer, samples.length);
       }
 
       inputFinished() {
         this.Module._InputFinished(this.handle);
       }
-    };
+    }
 
     window.Stream = Stream;
   }
@@ -246,42 +240,44 @@ function initSherpaNcnnRecognizerConfig(config, Module) {
   }
 
   window.createRecognizer = (Module, myConfig) => {
-    let modelConfig = {
-      encoderParam: './encoder_jit_trace-pnnx.ncnn.param',
-      encoderBin: './encoder_jit_trace-pnnx.ncnn.bin',
-      decoderParam: './decoder_jit_trace-pnnx.ncnn.param',
-      decoderBin: './decoder_jit_trace-pnnx.ncnn.bin',
-      joinerParam: './joiner_jit_trace-pnnx.ncnn.param',
-      joinerBin: './joiner_jit_trace-pnnx.ncnn.bin',
-      tokens: './tokens.txt',
-      useVulkanCompute: 0,
-      numThreads: 1,
+    Module.onRuntimeInitialized = () => {
+      let modelConfig = {
+        encoderParam: './encoder_jit_trace-pnnx.ncnn.param',
+        encoderBin: './encoder_jit_trace-pnnx.ncnn.bin',
+        decoderParam: './decoder_jit_trace-pnnx.ncnn.param',
+        decoderBin: './decoder_jit_trace-pnnx.ncnn.bin',
+        joinerParam: './joiner_jit_trace-pnnx.ncnn.param',
+        joinerBin: './joiner_jit_trace-pnnx.ncnn.bin',
+        tokens: './tokens.txt',
+        useVulkanCompute: 0,
+        numThreads: 1,
+      };
+
+      let decoderConfig = {
+        decodingMethod: 'greedy_search',
+        numActivePaths: 4,
+      };
+
+      let featConfig = {
+        samplingRate: 16000,
+        featureDim: 80,
+      };
+
+      let configObj = {
+        featConfig: featConfig,
+        modelConfig: modelConfig,
+        decoderConfig: decoderConfig,
+        enableEndpoint: 1,
+        rule1MinTrailingSilence: 1.2,
+        rule2MinTrailingSilence: 2.4,
+        rule3MinUtternceLength: 20,
+      };
+
+      if (myConfig) {
+        configObj = myConfig;
+      }
+
+      window.recognizerInstance = new Recognizer(configObj, Module);
     };
-
-    let decoderConfig = {
-      decodingMethod: 'greedy_search',
-      numActivePaths: 4,
-    };
-
-    let featConfig = {
-      samplingRate: 16000,
-      featureDim: 80,
-    };
-
-    let configObj = {
-      featConfig: featConfig,
-      modelConfig: modelConfig,
-      decoderConfig: decoderConfig,
-      enableEndpoint: 1,
-      rule1MinTrailingSilence: 1.2,
-      rule2MinTrailingSilence: 2.4,
-      rule3MinUtternceLength: 20,
-    };
-
-    if (myConfig) {
-      configObj = myConfig;
-    }
-
-    return new Recognizer(configObj, Module);
   };
 })();
