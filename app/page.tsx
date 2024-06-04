@@ -1,11 +1,11 @@
 import Asr from "./components/Asr";
-import Navbar from "./components/header/Navbar";
+// import Navbar from "./components/header/Navbar";
 import Footer from "./components/Footer";
 
 export default function Home() {
   return (
     <div>
-      <Navbar />
+      {/* <Navbar /> */}
       <Asr />
       <Footer />
     </div>
