@@ -1,7 +1,7 @@
 // This file copies and modifies code
 // from https://mdn.github.io/web-dictaphone/scripts/app.js
 // and https://gist.github.com/meziantou/edb7217fddfbb70e899e
-(function() {
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
@@ -315,5 +315,3 @@ function downsampleBuffer(buffer, exportSampleRate) {
   }
   return result;
 };
-}
-)();
