@@ -1,8 +1,3 @@
-<<<<<<< Updated upstream
-(function() {
-=======
-
->>>>>>> Stashed changes
 var Module = typeof Module != "undefined" ? Module : {};
 var ENVIRONMENT_IS_WEB = typeof window == "object";
 var ENVIRONMENT_IS_WORKER = typeof importScripts == "function";
@@ -3630,4 +3625,3 @@ if (Module["preInit"]) {
     }
 }
 run();
-})();
