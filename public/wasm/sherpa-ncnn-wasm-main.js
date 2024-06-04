@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 (function() {
+=======
+
+>>>>>>> Stashed changes
 var Module = typeof Module != "undefined" ? Module : {};
 var ENVIRONMENT_IS_WEB = typeof window == "object";
 var ENVIRONMENT_IS_WORKER = typeof importScripts == "function";
@@ -12,7 +16,7 @@ Module.expectedDataFileDownloads++;
     var isPthread = typeof ENVIRONMENT_IS_PTHREAD != "undefined" && ENVIRONMENT_IS_PTHREAD;
     var isWasmWorker = typeof ENVIRONMENT_IS_WASM_WORKER != "undefined" && ENVIRONMENT_IS_WASM_WORKER;
     if (isPthread || isWasmWorker) return;
-
+    
     function loadPackage(metadata) {
         var PACKAGE_PATH = "";
         if (typeof window === "object") {
@@ -578,73 +582,83 @@ function setValue(ptr, value, type = "i8") {
         case "*":
             HEAPU32[ptr >> 2] = value;
             break;
-        default:
-            abort(`invalid type for setValue: ${type}`)
+            default:
+                abort(`invalid type for setValue: ${type}`)
     }
 }
 var stackRestore = val => __emscripten_stack_restore(val);
 var stackSave = () => _emscripten_stack_get_current();
-class ExceptionInfo {
-    constructor(excPtr) {
-        this.excPtr = excPtr;
-        this.ptr = excPtr - 24
-    }
-    set_type(type) {
-        HEAPU32[this.ptr + 4 >> 2] = type
-    }
-    get_type() {
-        return HEAPU32[this.ptr + 4 >> 2]
-    }
-    set_destructor(destructor) {
-        HEAPU32[this.ptr + 8 >> 2] = destructor
-    }
-    get_destructor() {
-        return HEAPU32[this.ptr + 8 >> 2]
-    }
-    set_caught(caught) {
-        caught = caught ? 1 : 0;
-        HEAP8[this.ptr + 12] = caught
-    }
-    get_caught() {
-        return HEAP8[this.ptr + 12] != 0
-    }
-    set_rethrown(rethrown) {
-        rethrown = rethrown ? 1 : 0;
-        HEAP8[this.ptr + 13] = rethrown
-    }
-    get_rethrown() {
-        return HEAP8[this.ptr + 13] != 0
-    }
-    init(type, destructor) {
-        this.set_adjusted_ptr(0);
-        this.set_type(type);
-        this.set_destructor(destructor)
-    }
-    set_adjusted_ptr(adjustedPtr) {
-        HEAPU32[this.ptr + 16 >> 2] = adjustedPtr
-    }
-    get_adjusted_ptr() {
-        return HEAPU32[this.ptr + 16 >> 2]
-    }
-    get_exception_ptr() {
-        var isPointer = ___cxa_is_pointer_type(this.get_type());
-        if (isPointer) {
-            return HEAPU32[this.excPtr >> 2]
+
+
+    class ExceptionInfo {
+        constructor(excPtr) {
+            this.excPtr = excPtr;
+            this.ptr = excPtr - 24;
         }
-        var adjusted = this.get_adjusted_ptr();
-        if (adjusted !== 0) return adjusted;
-        return this.excPtr
+        set_type(type) {
+            HEAPU32[this.ptr + 4 >> 2] = type;
+        }
+        get_type() {
+            return HEAPU32[this.ptr + 4 >> 2];
+        }
+        set_destructor(destructor) {
+            HEAPU32[this.ptr + 8 >> 2] = destructor;
+        }
+        get_destructor() {
+            return HEAPU32[this.ptr + 8 >> 2];
+        }
+        set_caught(caught) {
+            caught = caught ? 1 : 0;
+            HEAP8[this.ptr + 12] = caught;
+        }
+        get_caught() {
+            return HEAP8[this.ptr + 12] != 0;
+        }
+        set_rethrown(rethrown) {
+            rethrown = rethrown ? 1 : 0;
+            HEAP8[this.ptr + 13] = rethrown;
+        }
+        get_rethrown() {
+            return HEAP8[this.ptr + 13] != 0;
+        }
+        init(type, destructor) {
+            this.set_adjusted_ptr(0);
+            this.set_type(type);
+            this.set_destructor(destructor);
+        }
+        set_adjusted_ptr(adjustedPtr) {
+            HEAPU32[this.ptr + 16 >> 2] = adjustedPtr;
+        }
+        get_adjusted_ptr() {
+            return HEAPU32[this.ptr + 16 >> 2];
+        }
+        get_exception_ptr() {
+            var isPointer = ___cxa_is_pointer_type(this.get_type());
+            if (isPointer) {
+                return HEAPU32[this.excPtr >> 2];
+            }
+            var adjusted = this.get_adjusted_ptr();
+            if (adjusted !== 0) return adjusted;
+            return this.excPtr;
+        }
     }
-}
-var exceptionLast = 0;
-var uncaughtExceptionCount = 0;
-var ___cxa_throw = (ptr, type, destructor) => {
-    var info = new ExceptionInfo(ptr);
-    info.init(type, destructor);
-    exceptionLast = ptr;
-    uncaughtExceptionCount++;
-    throw exceptionLast
-};
+
+    var exceptionLast = 0;
+    var uncaughtExceptionCount = 0;
+    
+    var ___cxa_throw = (ptr, type, destructor) => {
+        var info = new ExceptionInfo(ptr);
+        info.init(type, destructor);
+        exceptionLast = ptr;
+        uncaughtExceptionCount++;
+        throw exceptionLast;
+    };
+// (function() {
+
+// })();
+
+
+
 
 function syscallGetVarargI() {
     var ret = HEAP32[+SYSCALLS.varargs >> 2];

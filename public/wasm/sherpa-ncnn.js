@@ -146,139 +146,142 @@ function initSherpaNcnnRecognizerConfig(config, Module) {
   }
 }
 
-class Stream {
-  constructor(handle, Module) {
-    this.handle = handle;
-    this.pointer = null;
-    this.n = 0;
-    this.Module = Module;
+(function() {
+  if (typeof window.Stream === 'undefined') {
+    class Stream {
+      constructor(handle, Module) {
+        this.handle = handle;
+        this.pointer = null;
+        this.n = 0;
+        this.Module = Module;
+      }
+
+      free() {
+        if (this.handle) {
+          this.Module._DestroyStream(this.handle);
+          this.handle = null;
+          this.Module._free(this.pointer);
+          this.pointer = null;
+          this.n = 0;
+        }
+      }
+
+      /**
+       * @param sampleRate {Number}
+       * @param samples {Float32Array} Containing samples in the range [-1, 1]
+       */
+      acceptWaveform(sampleRate, samples) {
+        if (this.n < samples.length) {
+          this.Module._free(this.pointer);
+          this.pointer =
+              this.Module._malloc(samples.length * samples.BYTES_PER_ELEMENT);
+          this.n = samples.length;
+        }
+
+        this.Module.HEAPF32.set(samples, this.pointer / samples.BYTES_PER_ELEMENT);
+        this.Module._AcceptWaveform(
+            this.handle, sampleRate, this.pointer, samples.length);
+      }
+
+      inputFinished() {
+        this.Module._InputFinished(this.handle);
+      }
+    };
+
+    window.Stream = Stream;
   }
 
-  free() {
-    if (this.handle) {
-      this.Module._DestroyStream(this.handle);
-      this.handle = null;
-      this.Module._free(this.pointer);
-      this.pointer = null;
-      this.n = 0;
+  if (typeof window.Recognizer === 'undefined') {
+    class Recognizer {
+      constructor(configObj, Module) {
+        this.config = configObj;
+        let config = initSherpaNcnnRecognizerConfig(configObj, Module);
+        let handle = Module._CreateRecognizer(config.ptr);
+
+        freeConfig(config.featConfig, Module);
+        freeConfig(config.modelConfig, Module);
+        freeConfig(config.decoderConfig, Module);
+        freeConfig(config, Module);
+
+        this.handle = handle;
+        this.Module = Module;
+      }
+
+      free() {
+        this.Module._DestroyRecognizer(this.handle);
+        this.handle = 0;
+      }
+
+      createStream() {
+        let handle = this.Module._CreateStream(this.handle);
+        return new Stream(handle, this.Module);
+      }
+
+      isReady(stream) {
+        return this.Module._IsReady(this.handle, stream.handle) === 1;
+      }
+
+      isEndpoint(stream) {
+        return this.Module._IsEndpoint(this.handle, stream.handle) === 1;
+      }
+
+      decode(stream) {
+        return this.Module._Decode(this.handle, stream.handle);
+      }
+
+      reset(stream) {
+        this.Module._Reset(this.handle, stream.handle);
+      }
+
+      getResult(stream) {
+        let r = this.Module._GetResult(this.handle, stream.handle);
+        let textPtr = this.Module.getValue(r, 'i8*');
+        let text = this.Module.UTF8ToString(textPtr);
+        this.Module._DestroyResult(r);
+        return text;
+      }
     }
+
+    window.Recognizer = Recognizer;
   }
 
-  /**
-   * @param sampleRate {Number}
-   * @param samples {Float32Array} Containing samples in the range [-1, 1]
-   */
-  acceptWaveform(sampleRate, samples) {
-    if (this.n < samples.length) {
-      this.Module._free(this.pointer);
-      this.pointer =
-          this.Module._malloc(samples.length * samples.BYTES_PER_ELEMENT);
-      this.n = samples.length
+  window.createRecognizer = (Module, myConfig) => {
+    let modelConfig = {
+      encoderParam: './encoder_jit_trace-pnnx.ncnn.param',
+      encoderBin: './encoder_jit_trace-pnnx.ncnn.bin',
+      decoderParam: './decoder_jit_trace-pnnx.ncnn.param',
+      decoderBin: './decoder_jit_trace-pnnx.ncnn.bin',
+      joinerParam: './joiner_jit_trace-pnnx.ncnn.param',
+      joinerBin: './joiner_jit_trace-pnnx.ncnn.bin',
+      tokens: './tokens.txt',
+      useVulkanCompute: 0,
+      numThreads: 1,
+    };
+
+    let decoderConfig = {
+      decodingMethod: 'greedy_search',
+      numActivePaths: 4,
+    };
+
+    let featConfig = {
+      samplingRate: 16000,
+      featureDim: 80,
+    };
+
+    let configObj = {
+      featConfig: featConfig,
+      modelConfig: modelConfig,
+      decoderConfig: decoderConfig,
+      enableEndpoint: 1,
+      rule1MinTrailingSilence: 1.2,
+      rule2MinTrailingSilence: 2.4,
+      rule3MinUtternceLength: 20,
+    };
+
+    if (myConfig) {
+      configObj = myConfig;
     }
 
-    this.Module.HEAPF32.set(samples, this.pointer / samples.BYTES_PER_ELEMENT);
-    this.Module._AcceptWaveform(
-        this.handle, sampleRate, this.pointer, samples.length);
-  }
-
-  inputFinished() {
-    _InputFinished(this.handle);
-  }
-};
-
-class Recognizer {
-  constructor(configObj, Module) {
-    this.config = configObj;
-    let config = initSherpaNcnnRecognizerConfig(configObj, Module)
-    let handle = Module._CreateRecognizer(config.ptr);
-
-    freeConfig(config.featConfig, Module);
-    freeConfig(config.modelConfig, Module);
-    freeConfig(config.decoderConfig, Module);
-    freeConfig(config, Module);
-
-    this.handle = handle;
-    this.Module = Module;
-  }
-
-  free() {
-    this.Module._DestroyRecognizer(this.handle);
-    this.handle = 0
-  }
-
-  createStream() {
-    let handle = this.Module._CreateStream(this.handle);
-    return new Stream(handle, this.Module);
-  }
-
-  isReady(stream) {
-    return this.Module._IsReady(this.handle, stream.handle) == 1;
-  }
-
-  isEndpoint(stream) {
-    return this.Module._IsEndpoint(this.handle, stream.handle) == 1;
-  }
-
-  decode(stream) {
-    return this.Module._Decode(this.handle, stream.handle);
-  }
-
-  reset(stream) {
-    this.Module._Reset(this.handle, stream.handle);
-  }
-
-  getResult(stream) {
-    let r = this.Module._GetResult(this.handle, stream.handle);
-    let textPtr = this.Module.getValue(r, 'i8*');
-    let text = this.Module.UTF8ToString(textPtr);
-    this.Module._DestroyResult(r);
-    return text;
-  }
-}
-
-function createRecognizer(Module, myConfig) {
-  let modelConfig = {
-    encoderParam: './encoder_jit_trace-pnnx.ncnn.param',
-    encoderBin: './encoder_jit_trace-pnnx.ncnn.bin',
-    decoderParam: './decoder_jit_trace-pnnx.ncnn.param',
-    decoderBin: './decoder_jit_trace-pnnx.ncnn.bin',
-    joinerParam: './joiner_jit_trace-pnnx.ncnn.param',
-    joinerBin: './joiner_jit_trace-pnnx.ncnn.bin',
-    tokens: './tokens.txt',
-    useVulkanCompute: 0,
-    numThreads: 1,
+    return new Recognizer(configObj, Module);
   };
-
-  let decoderConfig = {
-    decodingMethod: 'greedy_search',
-    numActivePaths: 4,
-  };
-
-  let featConfig = {
-    samplingRate: 16000,
-    featureDim: 80,
-  };
-
-  let configObj = {
-    featConfig: featConfig,
-    modelConfig: modelConfig,
-    decoderConfig: decoderConfig,
-    enableEndpoint: 1,
-    rule1MinTrailingSilence: 1.2,
-    rule2MinTrailingSilence: 2.4,
-    rule3MinUtternceLength: 20,
-  };
-
-  if (myConfig) {
-    configObj = myConfig;
-  }
-
-  return new Recognizer(configObj, Module);
-}
-
-if (typeof process == 'object' && typeof process.versions == 'object' &&
-    typeof process.versions.node == 'string') {
-  module.exports = {
-    createRecognizer,
-  };
-}
+})();
