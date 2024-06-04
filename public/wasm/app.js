@@ -19,6 +19,24 @@ clearBtn.onclick = function() {
   textArea.scrollTop = textArea.scrollHeight;  // auto scroll
 };
 
+// function getDisplayResult() {
+//   let i = 0;
+//   let ans = '';
+//   for (let s in resultList) {
+//     if (resultList[s] == '') {
+//       continue;
+//     }
+
+//     ans += '' + i + ': ' + resultList[s] + '\n';
+//     i += 1;
+//   }
+
+//   if (lastResult.length > 0) {
+//     ans += '' + i + ': ' + lastResult + '\n';
+//   }
+//   return ans;
+// }
+
 function getDisplayResult() {
   let i = 0;
   let ans = '';
@@ -27,12 +45,12 @@ function getDisplayResult() {
       continue;
     }
 
-    ans += '' + i + ': ' + resultList[s] + '\n';
+    ans += '' + resultList[s] + '\n';
     i += 1;
   }
 
   if (lastResult.length > 0) {
-    ans += '' + i + ': ' + lastResult + '\n';
+    ans += '' + lastResult + '\n';
   }
   return ans;
 }
