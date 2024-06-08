@@ -47,11 +47,11 @@ export default function Asr() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">
-        Estonian Automatic Speech Recognition
-      </h1>
-      <div className="w-full max-w-2xl bg-white rounded-lg shadow-md p-8 relative">
+    <div className="flex flex-col items-center">
+      <div className="w-full bg-white rounded-lg shadow-md p-8 relative">
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          Estonian Automatic Speech Recognition
+        </h1>
         {loading && (
           <div className="w-full h-1.5 bg-gray-200 rounded-t-lg overflow-hidden">
             <div
@@ -93,17 +93,16 @@ export default function Asr() {
           style={{ resize: "none" }}
           value={"Waiting for audio input ..."}
         ></textarea>
+        <section
+          style={{ flex: 1, overflow: "auto" }}
+          id="sound-clips"
+          className="w-full bg-white rounded-lg shadow-md mt-8 p-8"
+        >
+          <span id="hint" className="block mb-4 text-lg text-gray-700">
+            Recent sound clips
+          </span>
+        </section>
       </div>
-
-      <section
-        style={{ flex: 1, overflow: "auto" }}
-        id="sound-clips"
-        className="w-full max-w-2xl bg-white rounded-lg shadow-md mt-8 p-8"
-      >
-        <span id="hint" className="block mb-4 text-lg text-gray-700">
-          Sound clips
-        </span>
-      </section>
     </div>
   );
 }
