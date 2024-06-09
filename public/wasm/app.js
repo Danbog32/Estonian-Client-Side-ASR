@@ -40,10 +40,13 @@ Module.onRuntimeInitialized = function() {
 
   startBtn.disabled = false;
 
-  recognizer = createRecognizer(Module);
-  console.log('recognizer is created!', recognizer);
-
-  setupRecorder(); // Setup recorder after recognizer is initialized
+  try {
+    recognizer = createRecognizer(Module);
+    console.log('recognizer is created!', recognizer);
+    setupRecorder(); // Setup recorder after recognizer is initialized
+  } catch (error) {
+    console.error('Error creating recognizer:', error);
+  }
 };
 
 let audioCtx;
