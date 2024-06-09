@@ -7,7 +7,7 @@ export default function Asr() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const totalScripts = 4;
+    const totalScripts = 3;
     let loadedScripts = 0;
 
     // Function to update progress
