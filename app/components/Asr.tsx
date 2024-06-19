@@ -1,31 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Progress } from "@nextui-org/react";
+import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
+import TextAreaDisplay from "./TextAreaDisplay"; // Adjust the path as necessary
+import AudioSection from "./AudioSection"; // Adjust the path as necessary
+import { Icons } from "./icons"; // Adjust the path as necessary
 
 export default function Asr() {
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
+  const { textSize, lineHeight, showSoundClips } = useSettings();
 
   useEffect(() => {
-    const totalScripts = 3;
-    let loadedScripts = 0;
-
-    // Function to update progress
-    const updateProgress = () => {
-      loadedScripts += 1;
-      setProgress((loadedScripts / totalScripts) * 100);
-      if (loadedScripts === totalScripts) {
-        setLoading(false);
-      }
-    };
-
-    // Load the necessary scripts
     const loadScripts = async () => {
       const scripts = [
         { src: "wasm/sherpa-ncnn-wasm-main.js", check: "startBtn" },
         { src: "wasm/sherpa-ncnn.js", check: "Stream" },
         { src: "wasm/app.js" },
       ];
+
+      const totalScripts = scripts.length;
+      let loadedScripts = 0;
+
+      const updateProgress = () => {
+        loadedScripts += 1;
+        if (loadedScripts === totalScripts) {
+          setLoading(false);
+        }
+      };
 
       for (const { src, check } of scripts) {
         const script = document.createElement("script");
@@ -47,61 +49,54 @@ export default function Asr() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-full bg-white rounded-lg shadow-md p-8 relative">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          Estonian Automatic Speech Recognition
-        </h1>
-        {loading && (
-          <div className="w-full h-1.5 bg-gray-200 rounded-t-lg overflow-hidden">
-            <div
-              className="h-1.5 bg-blue-600 transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            ></div>
+    <div className="bg-gray-800 flex flex-col items-center">
+      <div className="flex flex-col items-center min-h-[calc(100vh-140px)] w-full max-w-[1200px] text-white">
+        <div className="w-full p-8 relative h-full">
+          <div>
+            <button
+              id="startBtn"
+              disabled
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
+            >
+              <Icons.play size={20} color="white" />
+              Start
+            </button>
+            <button
+              id="stopBtn"
+              disabled
+              className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
+            >
+              <Icons.stop size={21} color="white" />
+              Stop
+            </button>
+            <button
+              id="clearBtn"
+              className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1"
+            >
+              <Icons.delete size={21} color="white" />
+              Clear
+            </button>
           </div>
-        )}
-        <span id="hint" className="block mb-4 text-lg text-gray-700">
-          Loading model ... {Math.round(progress)}%
-        </span>
-        <div className="flex justify-center space-x-4 mb-4">
-          <button
-            id="startBtn"
-            disabled
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50"
-          >
-            Start
-          </button>
-          <button
-            id="stopBtn"
-            disabled
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50"
-          >
-            Stop
-          </button>
-          <button
-            id="clearBtn"
-            className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded transition duration-300"
-          >
-            Clear
-          </button>
-        </div>
-        <textarea
-          id="results"
-          rows={10}
-          readOnly
-          className="w-full p-2 border rounded"
-          style={{ resize: "none" }}
-          value={"Waiting for audio input ..."}
-        ></textarea>
-        <section
-          style={{ flex: 1, overflow: "auto" }}
-          id="sound-clips"
-          className="w-full bg-white rounded-lg shadow-md mt-8 p-8"
-        >
-          <span id="hint" className="block mb-4 text-lg text-gray-700">
-            Recent sound clips
+          <h1 className="text-3xl font-bold mb-6 text-center">
+            Estonian Automatic Speech Recognition
+          </h1>
+
+          {loading && (
+            <Progress
+              size="sm"
+              isIndeterminate
+              aria-label="Loading..."
+              className="full-w"
+            />
+          )}
+          <span id="hint" className="mb-4 text-lg text-gray-300">
+            {loading ? "Loading the model..." : ""}
           </span>
-        </section>
+
+          <TextAreaDisplay textSize={textSize} lineHeight={lineHeight} />
+
+          <AudioSection showSoundClips={showSoundClips} />
+        </div>
       </div>
     </div>
   );

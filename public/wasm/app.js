@@ -37,6 +37,24 @@ clearBtn.onclick = function() {
 //   return ans;
 // }
 
+// function getDisplayResult() {
+//   let i = 0;
+//   let ans = '';
+//   for (let s in resultList) {
+//     if (resultList[s] == '') {
+//       continue;
+//     }
+
+//     ans += resultList[s] + '\n';
+//     i += 1;
+//   }
+
+//   if (lastResult.length > 0) {
+//     ans += lastResult + '\n';
+//   }
+//   return ans;
+// }
+
 function getDisplayResult() {
   let i = 0;
   let ans = '';
@@ -45,15 +63,30 @@ function getDisplayResult() {
       continue;
     }
 
-    ans += '' + resultList[s] + '\n';
+    ans += resultList[s] + '\n';
     i += 1;
   }
 
   if (lastResult.length > 0) {
-    ans += '' + lastResult + '\n';
+    ans += lastResult + '\n';
   }
-  return ans;
+
+  return cleanText(ans);
 }
+
+function cleanText(text) {
+  // Remove double spaces
+  text = text.replace(/\s\s+/g, ' ');
+
+  // Remove spaces before commas and periods
+  text = text.replace(/\s*([,.])/g, '$1');
+
+  // Remove leading commas from sentences
+  text = text.replace(/^\s*,/, '');
+
+  return text;
+}
+
 
 
 Module = {};
@@ -141,8 +174,14 @@ if (navigator.mediaDevices.getUserMedia) {
         recognizer.reset(recognizer_stream);
       }
 
+      const isScrolledToBottom = textArea.scrollHeight - textArea.clientHeight <= textArea.scrollTop + 1;
       textArea.value = getDisplayResult();
-      textArea.scrollTop = textArea.scrollHeight;  // auto scroll
+      
+      // Scroll to bottom only if the user was already at the bottom
+      if (isScrolledToBottom) {
+        textArea.scrollTop = textArea.scrollHeight;
+      }
+
 
       let buf = new Int16Array(samples.length);
       for (var i = 0; i < samples.length; ++i) {
@@ -165,6 +204,7 @@ if (navigator.mediaDevices.getUserMedia) {
       recorder.connect(audioCtx.destination);
 
       console.log('recorder started');
+      hint.innerText = 'Recording...'; //changing the text on the page
 
       stopBtn.disabled = false;
       startBtn.disabled = true;
@@ -172,6 +212,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
     stopBtn.onclick = function() {
       console.log('recorder stopped');
+      hint.innerText = 'Press "start" to continue'; //changing the text on the page
 
       // stopBtn recording
       recorder.disconnect(audioCtx.destination);
@@ -196,6 +237,9 @@ if (navigator.mediaDevices.getUserMedia) {
       deleteButton.className = 'delete';
 
       clipLabel.textContent = clipName;
+
+      // add cursor pointer to clipLabel
+      clipLabel.style.cursor = 'pointer';
 
       clipContainer.appendChild(audio);
 

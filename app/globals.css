@@ -2,17 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
   }
 }
 
@@ -26,26 +28,33 @@
     rgb(var(--background-start-rgb));
 } */
 
+body{
+  background-color: black;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
 
+
 .clip {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: #1f2937; /* Dark background */
+  border: 1px solid #374151; /* Dark border */
   border-radius: 0.375rem;
   padding: 1rem;
   margin-bottom: 1rem;
+  color: white; /* White text color */
 }
 
 .clip audio {
   flex-grow: 1;
   margin-right: 1rem;
+  max-width: 25%;
 }
 
 .clip button.delete {
@@ -60,4 +69,56 @@
 
 .clip button.delete:hover {
   background-color: #dc2626;
+} 
+
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #4a5568 #2d3748;
 }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #2d3748;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4a5568;
+  border-radius: 10px;
+  border: 3px solid #2d3748;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #718096;
+}
+
+
+
+@media screen and (max-width: 768px) {
+  .clip {
+    flex-direction: column;
+  }
+
+  .clip audio {
+    max-width: 100%;
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+}
+
+/* .wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.divider {
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 30px;
+} */
