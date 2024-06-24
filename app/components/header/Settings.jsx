@@ -42,7 +42,7 @@ export default function Settings() {
       <div className="flex flex-wrap gap-0 sm:gap-3">
         <Button
           variant="bordered"
-          onPress={handleOpen}
+          onClick={handleOpen}
           color="light"
           className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
         >
@@ -118,7 +118,7 @@ export default function Settings() {
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button color="danger" variant="light" onClick={onClose}>
                   Close
                 </Button>
               </ModalFooter>
