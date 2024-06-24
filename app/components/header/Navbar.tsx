@@ -47,13 +47,13 @@ export default function App() {
       onMenuOpenChange={setIsMenuOpen}
       className="bg-gray-900 bg-opacity-85"
     >
-      <NavbarContent>
+      <NavbarContent justify="start">
         <NavbarBrand>
           <TalTechLogo />
         </NavbarBrand>
       </NavbarContent>
 
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+      <NavbarContent className="hidden sm:flex gap-1" justify="center">
         <NavbarItem>
           <button
             id="startBtn"
@@ -93,7 +93,7 @@ export default function App() {
               isRecording
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-blue-600 hover:bg-blue-700"
-            } text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1`}
+            } text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1 ml-3`}
           >
             <Icons.play size={20} color="white" />
             {isRecording ? "Stop" : "Start"}
