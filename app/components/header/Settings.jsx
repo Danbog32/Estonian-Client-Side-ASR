@@ -106,7 +106,7 @@ export default function Settings() {
                       +
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2 mt-6">
+                  {/* <div className="flex items-center gap-2 mt-6">
                     <Checkbox
                       isSelected={showSoundClips}
                       onChange={(e) => setShowSoundClips(e.target.checked)}
@@ -114,7 +114,7 @@ export default function Settings() {
                     >
                       <span className="text-white">Show Sound Clips</span>
                     </Checkbox>
-                  </div>
+                  </div> */}
                 </div>
               </ModalBody>
               <ModalFooter>
