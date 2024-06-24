@@ -75,6 +75,11 @@ function getDisplayResult() {
   return cleanText(ans);
 }
 
+function getFirstTwoWords(text) {
+  let words = text.trim().split(/\s+/).slice(0, 2);
+  return words.join(' ');
+}
+
 function cleanText(text) {
   // Remove double spaces
   text = text.replace(/\s\s+/g, ' ');
@@ -238,7 +243,7 @@ if (navigator.mediaDevices.getUserMedia) {
         toggleBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1';
       }
 
-      var clipName = new Date().toISOString();
+      const clipName = getFirstTwoWords(textArea.value) || new Date().toISOString();
 
       const clipContainer = document.createElement('article');
       const clipLabel = document.createElement('p');
