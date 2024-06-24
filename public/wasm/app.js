@@ -7,6 +7,7 @@ const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
 const hint = document.getElementById('hint');
 const soundClips = document.getElementById('sound-clips');
+const toggleBtn = document.getElementById('toggleBtn');
 
 let textArea = document.getElementById('results');
 
@@ -208,6 +209,12 @@ if (navigator.mediaDevices.getUserMedia) {
 
       stopBtn.disabled = false;
       startBtn.disabled = true;
+      if (toggleBtn) {
+        toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="none" class="w-4 h-4"><circle cx="12" cy="12" r="8" /></svg> Stop';
+
+        toggleBtn.className = 'bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1';
+
+      }
     };
 
     stopBtn.onclick = function() {
@@ -224,6 +231,12 @@ if (navigator.mediaDevices.getUserMedia) {
 
       stopBtn.disabled = true;
       startBtn.disabled = false;
+
+      if (toggleBtn) {
+        toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><polygon points="5,3 19,12 5,21" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" /></svg> Start';
+
+        toggleBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1';
+      }
 
       var clipName = new Date().toISOString();
 

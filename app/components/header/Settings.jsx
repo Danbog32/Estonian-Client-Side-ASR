@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Modal,
@@ -40,15 +39,15 @@ export default function Settings() {
 
   return (
     <div className="dark">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-0 sm:gap-3">
         <Button
           variant="bordered"
           onPress={handleOpen}
           color="light"
-          className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1"
+          className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
         >
           <Icons.settings size={20} color="white" />
-          Settings
+          <span className="hidden sm:inline">Settings</span>
         </Button>
       </div>
       <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose}>
@@ -74,7 +73,6 @@ export default function Settings() {
                       value={textSize.toFixed(1)}
                       size="small"
                       onChange={(e) => setTextSize(Math.max(1, Math.min(parseFloat(e.target.value), 8)))}
-                      // className="bg-gray-700 text-white border-none w-16 text-center"
                     />
                     <Button
                       variant="bordered"
@@ -99,7 +97,6 @@ export default function Settings() {
                       variant="bordered"
                       value={lineHeight.toFixed(1)}
                       onChange={(e) => setLineHeight(Math.max(1, Math.min(parseFloat(e.target.value), 3)))}
-                      // className="bg-gray-700 text-white border-none w-16 text-center"
                     />
                     <Button
                       variant="bordered"
@@ -132,4 +129,3 @@ export default function Settings() {
     </div>
   );
 }
-

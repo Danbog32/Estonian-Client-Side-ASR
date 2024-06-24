@@ -6,9 +6,6 @@ import {
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-  NavbarMenuToggle,
-  NavbarMenu,
-  NavbarMenuItem,
   Link,
   Button,
 } from "@nextui-org/react";
@@ -18,6 +15,7 @@ import Settings from "./Settings"; // Adjust the path as necessary
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isRecording, setIsRecording] = React.useState(false);
 
   const menuItems = [
     "Profile",
@@ -32,16 +30,24 @@ export default function App() {
     "Log Out",
   ];
 
+  const handleButtonClick = () => {
+    setIsRecording(!isRecording);
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    if (isRecording) {
+      stopBtn?.click();
+    } else {
+      startBtn?.click();
+    }
+  };
+
   return (
     <Navbar
       onMenuOpenChange={setIsMenuOpen}
       className="bg-gray-900 bg-opacity-85"
     >
       <NavbarContent>
-        {/* <NavbarMenuToggle
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          className="sm:hidden"
-        /> */}
         <NavbarBrand>
           <TalTechLogo />
         </NavbarBrand>
@@ -78,31 +84,27 @@ export default function App() {
           </button>
         </NavbarItem>
       </NavbarContent>
+      <NavbarContent className="flex sm:hidden" justify="center">
+        <NavbarItem>
+          <button
+            id="toggleBtn"
+            onClick={handleButtonClick}
+            className={`${
+              isRecording
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-blue-600 hover:bg-blue-700"
+            } text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1`}
+          >
+            <Icons.play size={20} color="white" />
+            {isRecording ? "Stop" : "Start"}
+          </button>
+        </NavbarItem>
+      </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem>
           <Settings />
         </NavbarItem>
       </NavbarContent>
-      {/* <NavbarMenu>
-        {menuItems.map((item, index) => (
-          <NavbarMenuItem key={`${item}-${index}`}>
-            <Link
-              color={
-                index === 2
-                  ? "primary"
-                  : index === menuItems.length - 1
-                  ? "danger"
-                  : "foreground"
-              }
-              className="w-full"
-              href="#"
-              size="lg"
-            >
-              {item}
-            </Link>
-          </NavbarMenuItem>
-        ))}
-      </NavbarMenu> */}
     </Navbar>
   );
 }

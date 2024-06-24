@@ -6,13 +6,9 @@ import { SettingsProvider } from "./components/SettingsContext"; // Adjust the p
 export default function Home() {
   return (
     <SettingsProvider>
-      <div className="wrapper">
-        <div className="divider">
-          <Navbar />
-          <Asr />
-          <Footer />
-        </div>
-      </div>
+      <Navbar />
+      <Asr />
+      <Footer />
     </SettingsProvider>
   );
 }

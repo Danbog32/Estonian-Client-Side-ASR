@@ -5,7 +5,6 @@ import { Progress } from "@nextui-org/react";
 import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
 import TextAreaDisplay from "./TextAreaDisplay"; // Adjust the path as necessary
 import AudioSection from "./AudioSection"; // Adjust the path as necessary
-import { Icons } from "./icons"; // Adjust the path as necessary
 
 export default function Asr() {
   const [loading, setLoading] = useState(true);
@@ -52,32 +51,7 @@ export default function Asr() {
     <div className="bg-gray-800 flex flex-col items-center">
       <div className="flex flex-col items-center min-h-[calc(100vh-140px)] w-full max-w-[1200px] text-white">
         <div className="w-full p-8 relative h-full">
-          <div>
-            <button
-              id="startBtn"
-              disabled
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
-            >
-              <Icons.play size={20} color="white" />
-              Start
-            </button>
-            <button
-              id="stopBtn"
-              disabled
-              className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
-            >
-              <Icons.stop size={21} color="white" />
-              Stop
-            </button>
-            <button
-              id="clearBtn"
-              className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1"
-            >
-              <Icons.delete size={21} color="white" />
-              Clear
-            </button>
-          </div>
-          <h1 className="text-3xl font-bold mb-6 text-center">
+          <h1 className="sm:text-3xl md:text-2xl text-xl font-bold mb-6 text-center">
             Estonian Automatic Speech Recognition
           </h1>
 
