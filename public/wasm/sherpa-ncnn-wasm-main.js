@@ -19,8 +19,9 @@ Module.expectedDataFileDownloads++;
         } else if (typeof process === "undefined" && typeof location !== "undefined") {
             PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf("/")) + "/")
         }
-        var PACKAGE_NAME = "wasm/sherpa-ncnn-wasm-main.data";
-        var REMOTE_PACKAGE_BASE = "wasm/sherpa-ncnn-wasm-main.data";
+        const timestamp = new Date().getTime(); // Generate a unique timestamp
+        var PACKAGE_NAME = `wasm/sherpa-ncnn-wasm-main.data?v=${timestamp}`;
+        var REMOTE_PACKAGE_BASE = `wasm/sherpa-ncnn-wasm-main.data?v=${timestamp}`;
         if (typeof Module["locateFilePackage"] === "function" && !Module["locateFile"]) {
             Module["locateFile"] = Module["locateFilePackage"];
             err("warning: you defined Module.locateFilePackage, that has been renamed to Module.locateFile (using your locateFilePackage for now)")

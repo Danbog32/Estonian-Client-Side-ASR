@@ -18,8 +18,8 @@ export default function Asr() {
           src: `wasm/sherpa-ncnn-wasm-main.js?v=${timestamp}`,
           check: "startBtn",
         },
-        { src: `wasm/sherpa-ncnn.js?v=${timestamp}`, check: "Stream" },
-        { src: `wasm/app.js?v=${timestamp}` },
+        { src: `wasm/sherpa-ncnn.js`, check: "Stream" },
+        { src: `wasm/app.js` },
       ];
 
       const totalScripts = scripts.length;
