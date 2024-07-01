@@ -19,7 +19,7 @@ export default function Asr() {
           check: "startBtn",
         },
         { src: `wasm/sherpa-ncnn.js?v=${timestamp}`, check: "Stream" },
-        { src: `wasm/app.js?` },
+        { src: `wasm/app.js?v=${timestamp}` },
       ];
 
       const totalScripts = scripts.length;
