@@ -12,10 +12,14 @@ export default function Asr() {
 
   useEffect(() => {
     const loadScripts = async () => {
+      const timestamp = new Date().getTime();
       const scripts = [
-        { src: "wasm/sherpa-ncnn-wasm-main.js", check: "startBtn" },
-        { src: "wasm/sherpa-ncnn.js", check: "Stream" },
-        { src: "wasm/app.js" },
+        {
+          src: `wasm/sherpa-ncnn-wasm-main.js?v=${timestamp}`,
+          check: "startBtn",
+        },
+        { src: `wasm/sherpa-ncnn.js?`, check: "Stream" },
+        { src: `wasm/app.js?` },
       ];
 
       const totalScripts = scripts.length;
