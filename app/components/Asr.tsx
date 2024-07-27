@@ -15,11 +15,11 @@ export default function Asr() {
       const timestamp = new Date().getTime();
       const scripts = [
         {
-          src: `wasm/sherpa-ncnn-wasm-main.js?v=${timestamp}`,
+          src: `onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`,
           check: "startBtn",
         },
-        { src: `wasm/sherpa-ncnn.js`, check: "Stream" },
-        { src: `wasm/app.js` },
+        { src: `onnx/sherpa-onnx-asr.js`, check: "Stream" },
+        { src: `onnx/app-asr.js` },
       ];
 
       const totalScripts = scripts.length;
