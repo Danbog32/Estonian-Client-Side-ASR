@@ -18,7 +18,7 @@ export default function Asr() {
           src: `onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`,
           check: "startBtn",
         },
-        { src: `onnx/sherpa-onnx-asr.js`, check: "Stream" },
+        { src: `onnx/sherpa-onnx-asr.js?v=${timestamp}`, check: "Stream" },
         { src: `onnx/app-asr.js` },
       ];
 

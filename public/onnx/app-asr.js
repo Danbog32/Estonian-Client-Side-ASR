@@ -1,7 +1,3 @@
-// This file copies and modifies code
-// from https://mdn.github.io/web-dictaphone/scripts/app.js
-// and https://gist.github.com/meziantou/edb7217fddfbb70e899e
-
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
@@ -11,25 +7,37 @@ const toggleBtn = document.getElementById('toggleBtn');
 
 let textArea = document.getElementById('results');
 
+// Add these at the top of app-asr.js
+let subtitleMode = false; // Default to false for text mode
+
+// Function to update subtitle mode
+function setSubtitleMode(mode) {
+  subtitleMode = mode;
+}
+
+// Receive settings updates (this should be triggered from the Settings component)
+window.setSubtitleMode = setSubtitleMode;
+
 let lastResult = '';
+let subModeLastResult = ''; // New string for subtitle mode
+
+let prevSubList = []; // List to store previous subtitle texts
 let resultList = [];
 
 clearBtn.onclick = function() {
   resultList = [];
-  textArea.value = getDisplayResult();
+  prevSubList = [];
+  textArea.value = '';
   textArea.scrollTop = textArea.scrollHeight;  // auto scroll
 };
 
 function getDisplayResult() {
-  let i = 0;
   let ans = '';
   for (let s in resultList) {
     if (resultList[s] == '') {
       continue;
     }
-
     ans += resultList[s] + '\n';
-    i += 1;
   }
 
   if (lastResult.length > 0) {
@@ -37,6 +45,48 @@ function getDisplayResult() {
   }
   return cleanText(ans);
 }
+
+function getSubsModeDisplayResult() {
+  let sentence = subModeLastResult.trim();
+  let wordCount = sentence.split(/\s+/).length;
+  let commaCount = (sentence.match(/,/g) || []).length;
+  let periodCount = (sentence.match(/\./g) || []).length;
+
+  let ans = '';
+
+  if (wordCount > 5 || commaCount > 2 || periodCount > 2) {
+    console.log('sentence:', sentence);
+    console.log('wordCount:', wordCount);
+    console.log('commaCount:', commaCount);
+    console.log('periodCount:', periodCount);
+    console.log('subModeLastResult:', subModeLastResult);
+    console.log('prevSubList:', prevSubList);
+
+    prevSubList = [];
+    subModeLastResult = '';
+    
+    wordCount = 0;
+    commaCount = 0;
+    periodCount = 0;
+    sentence = '';
+
+    return ans = '';
+  }
+
+  for (let s in prevSubList) {
+    if (prevSubList[s] == '') {
+      continue;
+    }
+    ans += prevSubList[s] + '\n';
+  }
+
+  if (subModeLastResult.length > 0) {
+    ans += subModeLastResult + '\n';
+  }
+
+  return cleanText(ans);
+}
+
 
 function cleanText(text) {
   // Remove double spaces
@@ -50,7 +100,6 @@ function cleanText(text) {
 
   return text;
 }
-
 
 Module = {};
 Module.onRuntimeInitialized = function() {
@@ -79,7 +128,6 @@ let recognizer_stream = null;
 if (navigator.mediaDevices.getUserMedia) {
   console.log('getUserMedia supported.');
 
-  // see https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
   const constraints = {audio: true};
 
   let onSuccess = function(stream) {
@@ -90,12 +138,9 @@ if (navigator.mediaDevices.getUserMedia) {
     recordSampleRate = audioCtx.sampleRate;
     console.log('sample rate ' + recordSampleRate);
 
-    // creates an audio node from the microphone incoming stream
     mediaStream = audioCtx.createMediaStreamSource(stream);
     console.log('media stream', mediaStream);
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/createScriptProcessor
-    // bufferSize: the onaudioprocess event is called when the buffer is full
     var bufferSize = 4096;
     var numberOfInputChannels = 1;
     var numberOfOutputChannels = 2;
@@ -109,60 +154,69 @@ if (navigator.mediaDevices.getUserMedia) {
     console.log('recorder', recorder);
 
     recorder.onaudioprocess = function(e) {
-      let samples = new Float32Array(e.inputBuffer.getChannelData(0))
+      let samples = new Float32Array(e.inputBuffer.getChannelData(0));
       samples = downsampleBuffer(samples, expectedSampleRate);
-
+    
       if (recognizer_stream == null) {
         recognizer_stream = recognizer.createStream();
       }
-
+    
       recognizer_stream.acceptWaveform(expectedSampleRate, samples);
       while (recognizer.isReady(recognizer_stream)) {
         recognizer.decode(recognizer_stream);
       }
-
+    
       let isEndpoint = recognizer.isEndpoint(recognizer_stream);
       let result = recognizer.getResult(recognizer_stream).text;
-
+    
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
       }
+
+      if (result.length > 0 && subModeLastResult != result) {
+        subModeLastResult = result;
+      }
+
+      //TODO: result replace it stores in a list previous text
 
       if (isEndpoint) {
         if (lastResult.length > 0) {
           resultList.push(lastResult);
           lastResult = '';
         }
+        // if (subModeLastResult.length > 0) {
+        //   prevSubList.push(subModeLastResult);
+        //   subModeLastResult = '';
+        // }
         recognizer.reset(recognizer_stream);
       }
-
+    
       const isScrolledToBottom = textArea.scrollHeight - textArea.clientHeight <= textArea.scrollTop + 1;
-      textArea.value = getDisplayResult();
-
-      // Scroll to bottom only if the user was already at the bottom
+    
+      if (subtitleMode) {
+        textArea.value = getSubsModeDisplayResult();
+      } else {
+        textArea.value = getDisplayResult();
+      }
+    
       if (isScrolledToBottom) {
         textArea.scrollTop = textArea.scrollHeight;
       }
-
-      // textArea.value = getDisplayResult();
-      // textArea.scrollTop = textArea.scrollHeight;  // auto scroll
-
+    
       let buf = new Int16Array(samples.length);
-      for (var i = 0; i < samples.length; ++i) {
+      for (let i = 0; i < samples.length; ++i) {
         let s = samples[i];
-        if (s >= 1)
-          s = 1;
-        else if (s <= -1)
-          s = -1;
-
+        if (s >= 1) s = 1;
+        else if (s <= -1) s = -1;
+    
         samples[i] = s;
         buf[i] = s * 32767;
       }
-
+    
       leftchannel.push(buf);
       recordingLength += bufferSize;
     };
-
+    
     startBtn.onclick = function() {
       mediaStream.connect(recorder);
       recorder.connect(audioCtx.destination);
@@ -181,15 +235,10 @@ if (navigator.mediaDevices.getUserMedia) {
 
     stopBtn.onclick = function() {
       console.log('recorder stopped');
-      hint.innerText = 'Press "start" to continue'; //changing the text on the page
+      hint.innerText = 'Press "start" to continue';
 
-      // stopBtn recording
       recorder.disconnect(audioCtx.destination);
       mediaStream.disconnect(recorder);
-
-      startBtn.style.background = '';
-      startBtn.style.color = '';
-      // mediaRecorder.requestData();
 
       stopBtn.disabled = true;
       startBtn.disabled = false;
@@ -263,6 +312,7 @@ if (navigator.mediaDevices.getUserMedia) {
   alert('getUserMedia not supported on your browser!');
 }
 
+// Integration of additional code
 
 // this function is copied/modified from
 // https://gist.github.com/meziantou/edb7217fddfbb70e899e
@@ -338,4 +388,4 @@ function downsampleBuffer(buffer, exportSampleRate) {
     offsetBuffer = nextOffsetBuffer;
   }
   return result;
-};
+}

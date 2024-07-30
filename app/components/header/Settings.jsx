@@ -7,14 +7,13 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  Checkbox,
   Input,
 } from "@nextui-org/react";
 import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext"; // Adjust the path as necessary
 
 export default function Settings() {
-  const { textSize, setTextSize, lineHeight, setLineHeight, showSoundClips, setShowSoundClips } = useSettings();
+  const { textSize, setTextSize, lineHeight, setLineHeight, subtitleMode, setSubtitleMode } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
 
@@ -35,6 +34,12 @@ export default function Settings() {
       const newHeight = increment ? prevHeight + 0.1 : prevHeight - 0.1;
       return Math.max(1, Math.min(newHeight, 3));
     });
+  };
+
+  const handleModeChange = (mode) => {
+    setSubtitleMode(mode === 'subtitle');
+    // Update the global subtitle mode in app-asr.js
+    window.setSubtitleMode(mode === 'subtitle');
   };
 
   return (
@@ -106,15 +111,23 @@ export default function Settings() {
                       +
                     </Button>
                   </div>
-                  {/* <div className="flex items-center gap-2 mt-6">
-                    <Checkbox
-                      isSelected={showSoundClips}
-                      onChange={(e) => setShowSoundClips(e.target.checked)}
-                      className="text-gray-300"
+                  <span>Mode:</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={subtitleMode ? "solid" : "bordered"}
+                      onClick={() => handleModeChange('text')}
+                      className={`text-white ${!subtitleMode ? 'bg-gray-700 hover:bg-gray-800' : 'bg-gray-900 hover:bg-gray-800'} transition duration-100`}
                     >
-                      <span className="text-white">Show Sound Clips</span>
-                    </Checkbox>
-                  </div> */}
+                      Text Mode
+                    </Button>
+                    <Button
+                      variant={subtitleMode ? "bordered" : "solid"}
+                      onClick={() => handleModeChange('subtitle')}
+                      className={`text-white ${subtitleMode ? 'bg-gray-700 hover:bg-gray-800' : 'bg-gray-900 hover:bg-gray-800'} transition duration-100`}
+                    >
+                      Subtitle Mode
+                    </Button>
+                  </div>
                 </div>
               </ModalBody>
               <ModalFooter>
