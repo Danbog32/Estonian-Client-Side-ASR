@@ -20,8 +20,10 @@ Module.expectedDataFileDownloads++;
             PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf("/")) + "/")
         }
         const timestamp = new Date().getTime(); // Generate a unique timestamp
-        var PACKAGE_NAME = "onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}";
-        var REMOTE_PACKAGE_BASE = "onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}";
+        // var PACKAGE_NAME = "onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}";
+        // var REMOTE_PACKAGE_BASE = "onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}";
+        var PACKAGE_NAME = `onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}`;
+        var REMOTE_PACKAGE_BASE = `onnx/sherpa-onnx-wasm-main-asr.data?v=${timestamp}`;
         if (typeof Module["locateFilePackage"] === "function" && !Module["locateFile"]) {
             Module["locateFile"] = Module["locateFilePackage"];
             err("warning: you defined Module.locateFilePackage, that has been renamed to Module.locateFile (using your locateFilePackage for now)")

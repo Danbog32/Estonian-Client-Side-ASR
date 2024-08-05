@@ -8,6 +8,9 @@ import AudioSection from "./AudioSection"; // Adjust the path as necessary
 
 export default function Asr() {
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState(
+    "Downloading model, please wait..."
+  );
   const { textSize, lineHeight, showSoundClips } = useSettings();
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function Asr() {
       const updateProgress = () => {
         loadedScripts += 1;
         if (loadedScripts === totalScripts) {
-          setLoading(false);
+          setLoadingMessage("Initializing asr model, just a second...");
         }
       };
 
@@ -51,6 +54,18 @@ export default function Asr() {
     loadScripts();
   }, []);
 
+  useEffect(() => {
+    const handleModelInitialized = () => {
+      setLoading(false);
+    };
+
+    window.addEventListener("modelInitialized", handleModelInitialized);
+
+    return () => {
+      window.removeEventListener("modelInitialized", handleModelInitialized);
+    };
+  }, []);
+
   return (
     <div className="bg-gray-800 flex flex-col items-center">
       <div className="flex flex-col items-center min-h-[calc(100vh-140px)] w-full max-w-[1200px] text-white">
@@ -60,16 +75,18 @@ export default function Asr() {
           </h1>
 
           {loading && (
-            <Progress
-              size="sm"
-              isIndeterminate
-              aria-label="Loading..."
-              className="full-w"
-            />
+            <>
+              <Progress
+                size="sm"
+                isIndeterminate
+                aria-label="Loading..."
+                className="full-w"
+              />
+              <span id="hint" className="mb-4 text-lg text-gray-300">
+                {loadingMessage}
+              </span>
+            </>
           )}
-          <span id="hint" className="mb-4 text-lg text-gray-300">
-            {loading ? "Loading the model..." : ""}
-          </span>
 
           <TextAreaDisplay textSize={textSize} lineHeight={lineHeight} />
 

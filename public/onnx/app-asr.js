@@ -9,6 +9,7 @@ let textArea = document.getElementById('results');
 
 // Add these at the top of app-asr.js
 let subtitleMode = false; // Default to false for text mode
+const maxWords = 9; // Maximum number of words to display in subtitle mode
 
 // Function to update subtitle mode
 function setSubtitleMode(mode) {
@@ -19,8 +20,6 @@ function setSubtitleMode(mode) {
 window.setSubtitleMode = setSubtitleMode;
 
 let lastResult = '';
-let subModeLastResult = ''; // New string for subtitle mode
-
 let prevSubList = []; // List to store previous subtitle texts
 let resultList = [];
 
@@ -46,48 +45,6 @@ function getDisplayResult() {
   return cleanText(ans);
 }
 
-function getSubsModeDisplayResult() {
-  let sentence = subModeLastResult.trim();
-  let wordCount = sentence.split(/\s+/).length;
-  let commaCount = (sentence.match(/,/g) || []).length;
-  let periodCount = (sentence.match(/\./g) || []).length;
-
-  let ans = '';
-
-  if (wordCount > 5 || commaCount > 2 || periodCount > 2) {
-    console.log('sentence:', sentence);
-    console.log('wordCount:', wordCount);
-    console.log('commaCount:', commaCount);
-    console.log('periodCount:', periodCount);
-    console.log('subModeLastResult:', subModeLastResult);
-    console.log('prevSubList:', prevSubList);
-
-    prevSubList = [];
-    subModeLastResult = '';
-    
-    wordCount = 0;
-    commaCount = 0;
-    periodCount = 0;
-    sentence = '';
-
-    return ans = '';
-  }
-
-  for (let s in prevSubList) {
-    if (prevSubList[s] == '') {
-      continue;
-    }
-    ans += prevSubList[s] + '\n';
-  }
-
-  if (subModeLastResult.length > 0) {
-    ans += subModeLastResult + '\n';
-  }
-
-  return cleanText(ans);
-}
-
-
 function cleanText(text) {
   // Remove double spaces
   text = text.replace(/\s\s+/g, ' ');
@@ -110,7 +67,12 @@ Module.onRuntimeInitialized = function() {
 
   recognizer = createOnlineRecognizer(Module);
   console.log('recognizer is created!', recognizer);
+
+  // Emit event to indicate model initialization
+  const event = new Event('modelInitialized');
+  window.dispatchEvent(event);
 };
+
 
 let audioCtx;
 let mediaStream;
@@ -168,55 +130,55 @@ if (navigator.mediaDevices.getUserMedia) {
     
       let isEndpoint = recognizer.isEndpoint(recognizer_stream);
       let result = recognizer.getResult(recognizer_stream).text;
-    
+
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
       }
-
-      if (result.length > 0 && subModeLastResult != result) {
-        subModeLastResult = result;
-      }
-
-      //TODO: result replace it stores in a list previous text
-
+      
       if (isEndpoint) {
         if (lastResult.length > 0) {
           resultList.push(lastResult);
+          prevSubList.push(lastResult);
           lastResult = '';
         }
-        // if (subModeLastResult.length > 0) {
-        //   prevSubList.push(subModeLastResult);
-        //   subModeLastResult = '';
-        // }
         recognizer.reset(recognizer_stream);
       }
-    
+
       const isScrolledToBottom = textArea.scrollHeight - textArea.clientHeight <= textArea.scrollTop + 1;
-    
+
       if (subtitleMode) {
-        textArea.value = getSubsModeDisplayResult();
+        let combinedText = resultList.join(' ') + ' ' + lastResult;
+        let displayText = getLastNWords(combinedText, maxWords);
+        textArea.value = cleanText(displayText);
+
+        clearTimeout(subtitleTimeout);
+        subtitleTimeout = setTimeout(() => {
+          if (!isEndpoint) {
+            textArea.value = cleanText(displayText);
+          }
+        }, 3000); // Clear subtitle after 3 seconds of inactivity
       } else {
         textArea.value = getDisplayResult();
       }
-    
+
       if (isScrolledToBottom) {
         textArea.scrollTop = textArea.scrollHeight;
       }
-    
+
       let buf = new Int16Array(samples.length);
       for (let i = 0; i < samples.length; ++i) {
         let s = samples[i];
         if (s >= 1) s = 1;
         else if (s <= -1) s = -1;
-    
+
         samples[i] = s;
         buf[i] = s * 32767;
       }
-    
+
       leftchannel.push(buf);
       recordingLength += bufferSize;
     };
-    
+
     startBtn.onclick = function() {
       mediaStream.connect(recorder);
       recorder.connect(audioCtx.destination);
@@ -254,7 +216,10 @@ if (navigator.mediaDevices.getUserMedia) {
         return words.join(' ');
       }
 
-      const clipName = getFirstTwoWords(textArea.value) || new Date().toISOString();
+      let clipName = new Date().toISOString();
+      if(resultList.length > 0) {
+        clipName = getFirstTwoWords(resultList[0]);
+      }
 
       const clipContainer = document.createElement('article');
       const clipLabel = document.createElement('p');
@@ -389,3 +354,14 @@ function downsampleBuffer(buffer, exportSampleRate) {
   }
   return result;
 }
+
+// Function to get the last N words of a string
+function getLastNWords(text, n) {
+  let words = text.trim().split(/\s+/);
+  if (words.length > n) {
+    return words.slice(words.length - n).join(' ');
+  }
+  return text;
+}
+
+let subtitleTimeout;
