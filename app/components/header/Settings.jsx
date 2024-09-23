@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import {
   Modal,
   ModalContent,
@@ -16,6 +18,7 @@ export default function Settings() {
   const { textSize, setTextSize, lineHeight, setLineHeight, subtitleMode, setSubtitleMode } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
+  const [zoomApiToken, setZoomApiToken] = useState(""); // Add state for the Zoom API token
 
   const handleOpen = () => {
     setBackdrop("opaque");
@@ -37,9 +40,19 @@ export default function Settings() {
   };
 
   const handleModeChange = (mode) => {
-    setSubtitleMode(mode === 'subtitle');
+    setSubtitleMode(mode === "subtitle");
     // Update the global subtitle mode in app-asr.js
-    window.setSubtitleMode(mode === 'subtitle');
+    window.setSubtitleMode(mode === "subtitle");
+  };
+
+  const handleSaveZoomToken = () => {
+    if (zoomApiToken) {
+      // Send the token to the app-asr.js file
+      window.setApiSettings(zoomApiToken); // Assuming this function exists in app-asr.js
+      alert("Zoom API token saved successfully!");
+    } else {
+      alert("Please enter a valid Zoom API token.");
+    }
   };
 
   return (
@@ -59,7 +72,9 @@ export default function Settings() {
         <ModalContent className="bg-gray-800 text-white">
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-white">Settings</ModalHeader>
+              <ModalHeader className="flex flex-col gap-1 text-white">
+                Settings
+              </ModalHeader>
               <ModalBody className="text-gray-300">
                 <div className="flex flex-col gap-4 mb-4">
                   <span>Text Size:</span>
@@ -77,7 +92,11 @@ export default function Settings() {
                       variant="bordered"
                       value={textSize.toFixed(1)}
                       size="small"
-                      onChange={(e) => setTextSize(Math.max(1, Math.min(parseFloat(e.target.value), 8)))}
+                      onChange={(e) =>
+                        setTextSize(
+                          Math.max(1, Math.min(parseFloat(e.target.value), 8))
+                        )
+                      }
                     />
                     <Button
                       variant="bordered"
@@ -101,7 +120,11 @@ export default function Settings() {
                       isDisabled
                       variant="bordered"
                       value={lineHeight.toFixed(1)}
-                      onChange={(e) => setLineHeight(Math.max(1, Math.min(parseFloat(e.target.value), 3)))}
+                      onChange={(e) =>
+                        setLineHeight(
+                          Math.max(1, Math.min(parseFloat(e.target.value), 3))
+                        )
+                      }
                     />
                     <Button
                       variant="bordered"
@@ -111,23 +134,49 @@ export default function Settings() {
                       +
                     </Button>
                   </div>
-                  <span>Mode:</span>
+                  <span>Subtitle Mode:</span>
                   <div className="flex items-center gap-2">
                     <Button
                       variant={subtitleMode ? "solid" : "bordered"}
-                      onClick={() => handleModeChange('text')}
-                      className={`text-white ${!subtitleMode ? 'bg-gray-700 hover:bg-gray-800' : 'bg-gray-900 hover:bg-gray-800'} transition duration-100`}
+                      onClick={() => handleModeChange("text")}
+                      className={`text-white ${
+                        !subtitleMode
+                          ? "bg-gray-700 hover:bg-gray-800"
+                          : "bg-gray-900 hover:bg-gray-800"
+                      } transition duration-100`}
                     >
                       Text Mode
                     </Button>
                     <Button
                       variant={subtitleMode ? "bordered" : "solid"}
-                      onClick={() => handleModeChange('subtitle')}
-                      className={`text-white ${subtitleMode ? 'bg-gray-700 hover:bg-gray-800' : 'bg-gray-900 hover:bg-gray-800'} transition duration-100`}
+                      onClick={() => handleModeChange("subtitle")}
+                      className={`text-white ${
+                        subtitleMode
+                          ? "bg-gray-700 hover:bg-gray-800"
+                          : "bg-gray-900 hover:bg-gray-800"
+                      } transition duration-100`}
                     >
                       Subtitle Mode
                     </Button>
                   </div>
+
+                  {/* New section for Zoom API token input */}
+                  <span>Zoom API Token:</span>
+                  <Input
+                    type="text"
+                    value={zoomApiToken}
+                    onChange={(e) => setZoomApiToken(e.target.value)}
+                    placeholder="Enter Zoom API Token"
+                    variant="bordered"
+                  />
+                  <Button
+                    variant="solid"
+                    color="primary"
+                    className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100"
+                    onClick={handleSaveZoomToken}
+                  >
+                    Save Zoom Token
+                  </Button>
                 </div>
               </ModalBody>
               <ModalFooter>

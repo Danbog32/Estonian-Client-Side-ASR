@@ -1,14 +1,18 @@
 import Asr from "./components/Asr";
 import Navbar from "./components/header/Navbar";
 import Footer from "./components/Footer";
-import { SettingsProvider } from "./components/SettingsContext"; // Adjust the path as necessary
+import { SettingsProvider } from "./components/SettingsContext";
+import SendCaptions from "./components/SendCaptions";
 
 export default function Home() {
   return (
-    <SettingsProvider>
-      <Navbar />
-      <Asr />
-      <Footer />
-    </SettingsProvider>
+    <div>
+      <SettingsProvider>
+        <Navbar />
+        <Asr />
+        <Footer />
+      </SettingsProvider>
+      {/* <SendCaptions /> */}
+    </div>
   );
 }
