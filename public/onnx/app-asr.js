@@ -61,6 +61,26 @@ async function sendCaptionToZoom(captionText) {
   }
 }
 
+let captionEnabled = false; // Whether the feature is enabled
+let captionName = ""; // The name of the caption session
+
+// Function to send caption to Firebase
+async function sendCaptionToFirebase(captionText) {
+  if (!captionEnabled || !captionName) {
+    return;
+  }
+
+  try {
+    await window.db.collection("captions").doc(captionName).set({
+      text: captionText,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`Caption sent to Firebase for ${captionName}`);
+  } catch (error) {
+    console.error("Failed to send caption to Firebase:", error);
+  }
+}
+
 // Function to get the new caption (text that hasn't been sent yet)
 function getNewCaptionText(currentResult) {
   // Find the part of the result that hasn't been sent yet
@@ -100,6 +120,13 @@ function getDisplayResult() {
   if (lastResult.length > 0) {
     ans += lastResult + "\n";
   }
+
+  // Send captions to Firebase if the feature is enabled
+  const captionText = getNewCaptionText(ans);
+  if (captionText) {
+    sendCaptionToFirebase(captionText);
+  }
+
   return cleanText(ans);
 }
 
@@ -289,6 +316,15 @@ if (navigator.mediaDevices.getUserMedia) {
       recordingLength += bufferSize;
     };
 
+    // Function to generate a unique caption name
+    function generateCaptionName() {
+      // Generate a unique ID (e.g., using current timestamp and random number)
+      const uniqueId = `caption-${Date.now()}-${Math.floor(
+        Math.random() * 10000
+      )}`;
+      return uniqueId;
+    }
+
     startBtn.onclick = function () {
       mediaStream.connect(recorder);
       recorder.connect(audioCtx.destination);
@@ -304,6 +340,26 @@ if (navigator.mediaDevices.getUserMedia) {
 
         toggleBtn.className =
           "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
+      }
+
+      // Generate unique caption name if feature is enabled
+      if (captionEnabled && !captionName) {
+        captionName = generateCaptionName();
+        const captionURL = `${window.location.origin}/${captionName}`;
+        alert(`Live captions are available at: ${captionURL}`);
+        // Optionally, display the URL in the UI
+        const captionLinkElement = document.getElementById("captionLink");
+        if (captionLinkElement) {
+          captionLinkElement.innerHTML = `Live captions: <a href="${captionURL}" target="_blank">${captionURL}</a>`;
+        }
+      }
+    };
+
+    // Function to set caption settings (called from Settings)
+    window.setCaptionSettings = function (enabled) {
+      captionEnabled = enabled;
+      if (!enabled) {
+        captionName = ""; // Reset caption name when disabled
       }
     };
 

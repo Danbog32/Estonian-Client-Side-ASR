@@ -15,14 +15,29 @@ import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext"; // Adjust the path as necessary
 
 export default function Settings() {
-  const { textSize, setTextSize, lineHeight, setLineHeight, subtitleMode, setSubtitleMode } = useSettings();
+  const {
+    textSize,
+    setTextSize,
+    lineHeight,
+    setLineHeight,
+    subtitleMode,
+    setSubtitleMode,
+  } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
-  const [zoomApiToken, setZoomApiToken] = useState(""); // Add state for the Zoom API token
+  const [liveCaptionsEnabled, setLiveCaptionsEnabled] = useState(false);
+  const [zoomApiToken, setZoomApiToken] = useState("");
 
   const handleOpen = () => {
     setBackdrop("opaque");
     onOpen();
+  };
+
+  const handleLiveCaptionsToggle = () => {
+    const newState = !liveCaptionsEnabled;
+    setLiveCaptionsEnabled(newState);
+    // Update the global variables in app-asr.js
+    window.setCaptionSettings(newState);
   };
 
   const handleTextSizeChange = (increment) => {
@@ -70,7 +85,7 @@ export default function Settings() {
       </div>
       <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose}>
         <ModalContent className="bg-gray-800 text-white">
-          {onClose => (
+          {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-white">
                 Settings
@@ -176,6 +191,18 @@ export default function Settings() {
                     onClick={handleSaveZoomToken}
                   >
                     Save Zoom Token
+                  </Button>
+
+                  <span>Live Captions:</span>
+                  <Button
+                    variant="solid"
+                    color={liveCaptionsEnabled ? "primary" : "default"}
+                    onClick={handleLiveCaptionsToggle}
+                    className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100"
+                  >
+                    {liveCaptionsEnabled
+                      ? "Disable Live Captions"
+                      : "Enable Live Captions"}
                   </Button>
                 </div>
               </ModalBody>
