@@ -176,7 +176,7 @@ export default function Settings() {
                   </div>
 
                   {/* New section for Zoom API token input */}
-                  <span>Zoom API Token:</span>
+                  {/* <span>Zoom API Token:</span>
                   <Input
                     type="text"
                     value={zoomApiToken}
@@ -191,7 +191,7 @@ export default function Settings() {
                     onClick={handleSaveZoomToken}
                   >
                     Save Zoom Token
-                  </Button>
+                  </Button> */}
 
                   <span>Live Captions:</span>
                   <Button
