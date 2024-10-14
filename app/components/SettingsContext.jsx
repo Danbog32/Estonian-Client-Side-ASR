@@ -1,6 +1,8 @@
+// components/SettingsContext.jsx
+
 "use client";
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from "react";
 
 const SettingsContext = createContext();
 
@@ -12,10 +14,38 @@ export const SettingsProvider = ({ children }) => {
   const [textSize, setTextSize] = useState(3);
   const [lineHeight, setLineHeight] = useState(1.5);
   const [showSoundClips, setShowSoundClips] = useState(true);
-  const [subtitleMode, setSubtitleMode] = useState(false); // New state variable
+  const [subtitleMode, setSubtitleMode] = useState(false);
+
+  // Add new state variables
+  const [firebaseEnabled, setFirebaseEnabled] = useState(false);
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+  const [zoomApiToken, setZoomApiToken] = useState("");
+  const [captionName, setCaptionName] = useState("");
+  const [captionURL, setCaptionURL] = useState("");
 
   return (
-    <SettingsContext.Provider value={{ textSize, setTextSize, lineHeight, setLineHeight, showSoundClips, setShowSoundClips, subtitleMode, setSubtitleMode }}>
+    <SettingsContext.Provider
+      value={{
+        textSize,
+        setTextSize,
+        lineHeight,
+        setLineHeight,
+        showSoundClips,
+        setShowSoundClips,
+        subtitleMode,
+        setSubtitleMode,
+        firebaseEnabled,
+        setFirebaseEnabled,
+        zoomEnabled,
+        setZoomEnabled,
+        zoomApiToken,
+        setZoomApiToken,
+        captionName,
+        setCaptionName,
+        captionURL,
+        setCaptionURL,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

@@ -1,6 +1,8 @@
+// components/header/Settings.jsx
+
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   Modal,
   ModalContent,
@@ -12,7 +14,9 @@ import {
   Input,
 } from "@nextui-org/react";
 import { Icons } from "../icons";
-import { useSettings } from "../SettingsContext"; // Adjust the path as necessary
+import { useSettings } from "../SettingsContext";
+import ZoomApiSwitchComponent from "./ZoomApiSwitchComponent";
+import FirebaseApiSwitchComponent from "./FirebaseApiSwitchComponent";
 
 export default function Settings() {
   const {
@@ -25,19 +29,10 @@ export default function Settings() {
   } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
-  const [liveCaptionsEnabled, setLiveCaptionsEnabled] = useState(false);
-  const [zoomApiToken, setZoomApiToken] = useState("");
 
   const handleOpen = () => {
     setBackdrop("opaque");
     onOpen();
-  };
-
-  const handleLiveCaptionsToggle = () => {
-    const newState = !liveCaptionsEnabled;
-    setLiveCaptionsEnabled(newState);
-    // Update the global variables in app-asr.js
-    window.setCaptionSettings(newState);
   };
 
   const handleTextSizeChange = (increment) => {
@@ -57,16 +52,8 @@ export default function Settings() {
   const handleModeChange = (mode) => {
     setSubtitleMode(mode === "subtitle");
     // Update the global subtitle mode in app-asr.js
-    window.setSubtitleMode(mode === "subtitle");
-  };
-
-  const handleSaveZoomToken = () => {
-    if (zoomApiToken) {
-      // Send the token to the app-asr.js file
-      window.setApiSettings(zoomApiToken); // Assuming this function exists in app-asr.js
-      alert("Zoom API token saved successfully!");
-    } else {
-      alert("Please enter a valid Zoom API token.");
+    if (window.setSubtitleMode) {
+      window.setSubtitleMode(mode === "subtitle");
     }
   };
 
@@ -152,12 +139,12 @@ export default function Settings() {
                   <span>Subtitle Mode:</span>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant={subtitleMode ? "solid" : "bordered"}
+                      variant={!subtitleMode ? "bordered" : "solid"}
                       onClick={() => handleModeChange("text")}
                       className={`text-white ${
-                        !subtitleMode
-                          ? "bg-gray-700 hover:bg-gray-800"
-                          : "bg-gray-900 hover:bg-gray-800"
+                        subtitleMode
+                          ? "bg-gray-900 hover:bg-gray-800"
+                          : "bg-gray-700 hover:bg-gray-800"
                       } transition duration-100`}
                     >
                       Text Mode
@@ -166,44 +153,16 @@ export default function Settings() {
                       variant={subtitleMode ? "bordered" : "solid"}
                       onClick={() => handleModeChange("subtitle")}
                       className={`text-white ${
-                        subtitleMode
-                          ? "bg-gray-700 hover:bg-gray-800"
-                          : "bg-gray-900 hover:bg-gray-800"
+                        !subtitleMode
+                          ? "bg-gray-900 hover:bg-gray-800"
+                          : "bg-gray-700 hover:bg-gray-800"
                       } transition duration-100`}
                     >
                       Subtitle Mode
                     </Button>
                   </div>
-
-                  {/* New section for Zoom API token input */}
-                  {/* <span>Zoom API Token:</span>
-                  <Input
-                    type="text"
-                    value={zoomApiToken}
-                    onChange={(e) => setZoomApiToken(e.target.value)}
-                    placeholder="Enter Zoom API Token"
-                    variant="bordered"
-                  />
-                  <Button
-                    variant="solid"
-                    color="primary"
-                    className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100"
-                    onClick={handleSaveZoomToken}
-                  >
-                    Save Zoom Token
-                  </Button> */}
-
-                  <span>Live Captions:</span>
-                  <Button
-                    variant="solid"
-                    color={liveCaptionsEnabled ? "primary" : "default"}
-                    onClick={handleLiveCaptionsToggle}
-                    className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100"
-                  >
-                    {liveCaptionsEnabled
-                      ? "Disable Live Captions"
-                      : "Enable Live Captions"}
-                  </Button>
+                  <ZoomApiSwitchComponent />
+                  <FirebaseApiSwitchComponent />
                 </div>
               </ModalBody>
               <ModalFooter>

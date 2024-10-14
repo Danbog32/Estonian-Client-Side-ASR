@@ -37,7 +37,7 @@ export default function LiveCaptionsPage() {
             src="/images/TalTech_logo.png" // Replace with your logo path
             alt="Logo"
             width={100}
-            height={100}
+            height={70}
             className="mr-4"
           />
           {/* Title */}
