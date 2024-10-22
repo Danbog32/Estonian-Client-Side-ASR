@@ -64,14 +64,14 @@ export default function FirebaseApiSwitchComponent() {
         onChange={(e) => setFirebaseEnabled(e.target.checked)}
         classNames={{
           base: cn(
-            "inline-flex flex-row-reverse w-full max-w-md bg-content1 hover:bg-content2 items-center",
+            "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
             "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-transparent",
-            "data-[selected=true]:border-primary"
+            "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
           ),
           wrapper: "p-0 h-4 overflow-visible",
           thumb: cn(
             "w-6 h-6 border-2 shadow-lg",
-            "group-data-[hover=true]:border-primary",
+            "group-data-[hover=true]:border-white",
             // selected
             "group-data-[selected=true]:ml-6",
             // pressed
@@ -81,14 +81,16 @@ export default function FirebaseApiSwitchComponent() {
         }}
       >
         <div className="flex flex-col gap-1">
-          <p className="text-medium">Cast captions to multiple people</p>
-          <p className="text-tiny text-grey-400">
+          <p className="text-medium text-white">
+            Cast captions to multiple people
+          </p>
+          <p className="text-tiny text-white">
             Captions will be sent to multiple people who have the link.
           </p>
         </div>
       </Switch>
       {firebaseEnabled && captionURL && (
-        <div className="mt-2">
+        <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
           <p>Your live captions are available at:</p>
           <a
             href={captionURL}

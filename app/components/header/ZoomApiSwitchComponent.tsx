@@ -2,8 +2,8 @@
 
 "use client";
 
-import { Switch, cn, Input } from "@nextui-org/react";
-import { useEffect } from "react";
+import { Switch, cn, Input, Button } from "@nextui-org/react";
+import { useState, useEffect } from "react";
 import { useSettings } from "../SettingsContext";
 
 declare global {
@@ -16,6 +16,16 @@ export default function ZoomApiSwitchComponent() {
   const { zoomEnabled, setZoomEnabled, zoomApiToken, setZoomApiToken } =
     useSettings();
 
+  // Local state to hold the Zoom API Token before saving
+  const [localZoomApiToken, setLocalZoomApiToken] = useState(zoomApiToken);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Synchronize localZoomApiToken with global zoomApiToken
+  useEffect(() => {
+    setLocalZoomApiToken(zoomApiToken);
+  }, [zoomApiToken]);
+
   // Function to update Zoom settings in app-asr.js
   const updateZoomSettings = (enabled: boolean, token: string) => {
     if (window.setZoomSettings) {
@@ -23,26 +33,43 @@ export default function ZoomApiSwitchComponent() {
     }
   };
 
-  // Effect to call updateZoomSettings when zoomEnabled or zoomApiToken changes
-  useEffect(() => {
-    updateZoomSettings(zoomEnabled, zoomApiToken);
-  }, [zoomEnabled, zoomApiToken]);
+  // Handler for the Save button (saves ZoomApiToken)
+  const handleSave = () => {
+    setIsSaving(true);
+    // Update global ZoomApiToken
+    setZoomApiToken(localZoomApiToken);
+    // Call the update function with current zoomEnabled and new token
+    updateZoomSettings(zoomEnabled, localZoomApiToken);
+    setIsSaving(false);
+    setSaveSuccess(true);
+    // Hide the success message after 3 seconds
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  // Handler for toggling zoomEnabled (saves immediately)
+  const handleToggle = (checked: boolean) => {
+    setZoomEnabled(checked);
+    // When disabling, you might choose to clear the token or keep it as is
+    // Here, we keep the token unchanged
+    updateZoomSettings(checked, zoomApiToken);
+  };
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Zoom Enabled Switch */}
       <Switch
         isSelected={zoomEnabled}
-        onChange={(e) => setZoomEnabled(e.target.checked)}
+        onChange={(e) => handleToggle(e.target.checked)}
         classNames={{
           base: cn(
-            "inline-flex flex-row-reverse w-full max-w-md bg-content1 hover:bg-content2 items-center",
-            "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-transparent",
-            "data-[selected=true]:border-primary"
+            "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
+            "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
+            "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
           ),
           wrapper: "p-0 h-4 overflow-visible",
           thumb: cn(
             "w-6 h-6 border-2 shadow-lg",
-            "group-data-[hover=true]:border-primary",
+            "group-data-[hover=true]:border-white",
             // selected
             "group-data-[selected=true]:ml-6",
             // pressed
@@ -52,20 +79,42 @@ export default function ZoomApiSwitchComponent() {
         }}
       >
         <div className="flex flex-col gap-1">
-          <p className="text-medium">Add captions to Zoom</p>
-          <p className="text-tiny text-grey-400">
-            Captions will be displayed in the Zoom app.
+          <p className="text-medium text-white">Add captions to Zoom</p>
+          <p className="text-tiny text-white">
+            Captions will be displayed in the Zoom app
           </p>
         </div>
       </Switch>
+
+      {/* Zoom API Token Input and Save Button (only visible when zoomEnabled is true) */}
       {zoomEnabled && (
-        <Input
-          type="text"
-          placeholder="Enter Zoom API Token"
-          variant="bordered"
-          value={zoomApiToken}
-          onChange={(e) => setZoomApiToken(e.target.value)}
-        />
+        <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
+          <Input
+            type="text"
+            placeholder="Example: https://wmcc.zoom.us/"
+            label="Zoom API Token"
+            variant="bordered"
+            size="lg"
+            color="primary"
+            value={localZoomApiToken}
+            onChange={(e) => setLocalZoomApiToken(e.target.value)}
+          />
+          <Button
+            type="button"
+            size="md"
+            color="primary"
+            onClick={handleSave}
+            isLoading={isSaving}
+            disabled={isSaving}
+          >
+            Save
+          </Button>
+          {saveSuccess && (
+            <p className="text-small text-green-500">
+              Settings saved successfully!
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -137,7 +137,7 @@ export default function Settings() {
                     </Button>
                   </div>
                   <span>Subtitle Mode:</span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-2">
                     <Button
                       variant={!subtitleMode ? "bordered" : "solid"}
                       onClick={() => handleModeChange("text")}

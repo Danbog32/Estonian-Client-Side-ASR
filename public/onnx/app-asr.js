@@ -82,6 +82,9 @@ window.setFirebaseSettings = function (enabled, name) {
   streamingCaptionsUrl = name;
 };
 
+// security Firebase setup write Token
+// const writeToken = `token-${Math.random().toString(36).substr(2, 9)}`;
+
 async function sendCaptionToFirebase(captionText) {
   if (!firebaseEnabled || !streamingCaptionsUrl) {
     return;
@@ -90,6 +93,7 @@ async function sendCaptionToFirebase(captionText) {
   try {
     await window.db.collection("captions").doc(streamingCaptionsUrl).set({
       text: captionText,
+      // writeToken: writeToken,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     });
     console.log(`Caption sent to Firebase for ${streamingCaptionsUrl}`);
