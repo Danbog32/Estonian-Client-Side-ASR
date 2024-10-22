@@ -40,7 +40,6 @@ export default function Home() {
         <Asr />
         <Footer />
       </SettingsProvider>
-      {/* <SendCaptions /> */}
     </div>
   );
 }
