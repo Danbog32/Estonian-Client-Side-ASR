@@ -2,7 +2,6 @@ import Asr from "./components/Asr";
 import Navbar from "./components/header/Navbar";
 import Footer from "./components/Footer";
 import { SettingsProvider } from "./components/SettingsContext";
-import SendCaptions from "./components/SendCaptions";
 import Script from "next/script";
 
 export default function Home() {
@@ -41,7 +40,6 @@ export default function Home() {
         <Asr />
         <Footer />
       </SettingsProvider>
-      {/* <SendCaptions /> */}
     </div>
   );
 }

@@ -19,23 +19,25 @@ let apiToken = ""; // Store API token from the settings
 function setSubtitleMode(mode) {
   subtitleMode = mode;
 }
+window.setSubtitleMode = setSubtitleMode;
 
 let lastSentCaption = ""; // Variable to store the last caption sent to the API
 
-// Receive API token and URL from Settings (to be set in the Settings component)
-window.setApiSettings = function (token) {
-  apiToken = token;
+let sendToZoomEnabled = false; // Whether sending to Zoom is enabled
+
+// Function to set Zoom settings (called from Settings)
+window.setZoomSettings = function (enabled, token) {
+  sendToZoomEnabled = enabled;
+  apiToken = token; // Assuming the token is set here
 };
 
-// Function to send caption to Zoom API
 async function sendCaptionToZoom(captionText) {
-  if (!apiToken) {
-    console.error("API token or URL is missing");
+  if (!sendToZoomEnabled || !apiToken) {
     return;
   }
 
   try {
-    // Adjust this to the correct endpoint as per your setup
+    // Adjust the endpoint as per your Zoom API setup
     const response = await fetch("/api/zoom/caption", {
       method: "POST",
       headers: {
@@ -43,59 +45,81 @@ async function sendCaptionToZoom(captionText) {
         Authorization: `Bearer ${apiToken}`,
       },
       body: JSON.stringify({
-        captionText, // The new caption text
-        zoomTokenUrl: apiToken, // Assuming this is the API token passed in
-        lang: "en-US", // Language for the caption (adjust based on requirement)
+        captionText,
+        lang: "en-US",
+        zoomTokenUrl: apiToken,
       }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      console.log(`Caption sent successfully with seq: ${data.seq}`);
+      console.log(`Caption sent to Zoom successfully with seq: ${data.seq}`);
     } else {
-      console.error(`Error: ${data.error}`);
+      console.error(`Error sending caption to Zoom: ${data.error}`);
     }
   } catch (error) {
-    console.error("Failed to send caption:", error);
+    console.error("Failed to send caption to Zoom:", error);
   }
 }
 
 let captionEnabled = false; // Whether the feature is enabled
 let captionName = ""; // The name of the caption session
 
-// Function to send caption to Firebase
+// Function to set caption settings (called from Settings)
+window.setCaptionSettings = function (enabled) {
+  captionEnabled = enabled;
+  if (!enabled) {
+    captionName = ""; // Reset caption name when disabled
+  }
+};
+
+let firebaseEnabled = false; // Whether Firebase is enabled
+let streamingCaptionsUrl = ""; // The name of the caption session
+
+window.setFirebaseSettings = function (enabled, name) {
+  firebaseEnabled = enabled;
+  streamingCaptionsUrl = name;
+};
+
+// security Firebase setup write Token
+// const writeToken = `token-${Math.random().toString(36).substr(2, 9)}`;
+
 async function sendCaptionToFirebase(captionText) {
-  if (!captionEnabled || !captionName) {
+  if (!firebaseEnabled || !streamingCaptionsUrl) {
     return;
   }
 
   try {
-    await window.db.collection("captions").doc(captionName).set({
+    await window.db.collection("captions").doc(streamingCaptionsUrl).set({
       text: captionText,
+      // writeToken: writeToken,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    console.log(`Caption sent to Firebase for ${captionName}`);
+    console.log(`Caption sent to Firebase for ${streamingCaptionsUrl}`);
   } catch (error) {
     console.error("Failed to send caption to Firebase:", error);
   }
 }
 
-// Function to get the new caption (text that hasn't been sent yet)
-function getNewCaptionText(currentResult) {
-  // Find the part of the result that hasn't been sent yet
-  const newCaption = currentResult.replace(lastSentCaption, "").trim();
+function checkAndClearText(text) {
+  // Convert text to a Blob to get the byte size
+  const blob = new Blob([text], { type: "text/plain" });
+  const textSize = blob.size;
 
-  // If there's no new caption, return null to avoid sending unnecessary requests
-  if (newCaption.length === 0) {
-    return null;
+  const maxSize = 1000000; // 1,000,000 bytes for safety
+
+  if (textSize >= maxSize) {
+    console.warn(
+      "Text size limit reached. Clearing text to prevent exceeding Firebase's limit."
+    );
+    resultList = [];
+    lastSentCaption = "";
+    return "";
+  } else {
+    return text;
   }
-
-  return cleanText(newCaption);
 }
-
-// Receive settings updates (this should be triggered from the Settings component)
-window.setSubtitleMode = setSubtitleMode;
 
 let lastResult = "";
 let prevSubList = []; // List to store previous subtitle texts
@@ -121,26 +145,54 @@ function getDisplayResult() {
     ans += lastResult + "\n";
   }
 
-  // Send captions to Firebase if the feature is enabled
-  const captionText = getNewCaptionText(ans);
+  // Clean the text
+  const cleanAns = cleanText(ans);
+
+  // Check text size and clear if necessary
+  const textToSend = checkAndClearText(cleanAns);
+
+  // Send captions if new words are detected
+  const captionText = getNewCaptionText(cleanAns);
   if (captionText) {
-    sendCaptionToFirebase(captionText);
+    if (firebaseEnabled) {
+      sendCaptionToFirebase(textToSend);
+    }
+    if (sendToZoomEnabled) {
+      sendCaptionToZoom(captionText);
+    }
+    lastSentCaption = cleanAns.trim(); // Update lastSentCaption
   }
 
-  return cleanText(ans);
+  return cleanAns;
 }
 
 function cleanText(text) {
-  // Remove double spaces
+  // Remove extra spaces
   text = text.replace(/\s\s+/g, " ");
 
-  // Remove spaces before commas and periods
-  text = text.replace(/\s*([,.])/g, "$1");
+  // Remove spaces before punctuation
+  text = text.replace(/\s*([,.!?;:])/g, "$1");
 
-  // Remove leading commas from sentences
-  text = text.replace(/^\s*,/, "");
+  // Remove leading punctuation
+  text = text.replace(/^[,.!?;:]+/, "");
+
+  // Trim leading and trailing spaces
+  text = text.trim();
 
   return text;
+}
+
+function getNewCaptionText(currentResult) {
+  // Clean and trim the current result and last sent caption
+  const cleanCurrentResult = cleanText(currentResult);
+  const cleanLastSentCaption = cleanText(lastSentCaption);
+
+  // Check if the texts are different
+  if (cleanCurrentResult !== cleanLastSentCaption) {
+    return cleanCurrentResult; // Return the entire text
+  } else {
+    return null; // No new words added
+  }
 }
 
 Module = {};
@@ -243,13 +295,9 @@ if (navigator.mediaDevices.getUserMedia) {
 
         textArea.value = cleanText(displayText);
 
-        // Clear the subtitle after 3 seconds of inactivity
-        clearTimeout(subtitleTimeout);
-        subtitleTimeout = setTimeout(() => {
-          if (!isEndpoint) {
-            textArea.value = cleanText(displayText);
-          }
-        }, 3000);
+        if (!isEndpoint) {
+          textArea.value = cleanText(displayText);
+        }
       } else {
         textArea.value = getDisplayResult();
       }
@@ -266,8 +314,6 @@ if (navigator.mediaDevices.getUserMedia) {
         }
         return text;
       }
-
-      let subtitleTimeout;
 
       // Function to update the resultList to maintain a rolling window of 24 words
       function updateResultList(newResult) {
@@ -316,15 +362,6 @@ if (navigator.mediaDevices.getUserMedia) {
       recordingLength += bufferSize;
     };
 
-    // Function to generate a unique caption name
-    function generateCaptionName() {
-      // Generate a unique ID (e.g., using current timestamp and random number)
-      const uniqueId = `caption-${Date.now()}-${Math.floor(
-        Math.random() * 10000
-      )}`;
-      return uniqueId;
-    }
-
     startBtn.onclick = function () {
       mediaStream.connect(recorder);
       recorder.connect(audioCtx.destination);
@@ -340,26 +377,6 @@ if (navigator.mediaDevices.getUserMedia) {
 
         toggleBtn.className =
           "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
-      }
-
-      // Generate unique caption name if feature is enabled
-      if (captionEnabled && !captionName) {
-        captionName = generateCaptionName();
-        const captionURL = `${window.location.origin}/${captionName}`;
-        alert(`Live captions are available at: ${captionURL}`);
-        // Optionally, display the URL in the UI
-        const captionLinkElement = document.getElementById("captionLink");
-        if (captionLinkElement) {
-          captionLinkElement.innerHTML = `Live captions: <a href="${captionURL}" target="_blank">${captionURL}</a>`;
-        }
-      }
-    };
-
-    // Function to set caption settings (called from Settings)
-    window.setCaptionSettings = function (enabled) {
-      captionEnabled = enabled;
-      if (!enabled) {
-        captionName = ""; // Reset caption name when disabled
       }
     };
 
