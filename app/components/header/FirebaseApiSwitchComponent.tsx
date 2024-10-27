@@ -65,7 +65,7 @@ export default function FirebaseApiSwitchComponent() {
         classNames={{
           base: cn(
             "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
-            "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-transparent",
+            "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
             "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
           ),
           wrapper: "p-0 h-4 overflow-visible",

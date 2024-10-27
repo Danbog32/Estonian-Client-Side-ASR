@@ -20,6 +20,7 @@ export default function ZoomApiSwitchComponent() {
   const [localZoomApiToken, setLocalZoomApiToken] = useState(zoomApiToken);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   // Synchronize localZoomApiToken with global zoomApiToken
   useEffect(() => {
@@ -35,6 +36,14 @@ export default function ZoomApiSwitchComponent() {
 
   // Handler for the Save button (saves ZoomApiToken)
   const handleSave = () => {
+    const patternZoomApiToken = new RegExp("https://[a-z0-9]+.zoom");
+    if (!patternZoomApiToken.test(localZoomApiToken)) {
+      setSaveSuccess(false);
+      setSaveError(true);
+      return;
+    }
+
+    setSaveError(false);
     setIsSaving(true);
     // Update global ZoomApiToken
     setZoomApiToken(localZoomApiToken);
@@ -110,8 +119,13 @@ export default function ZoomApiSwitchComponent() {
             Save
           </Button>
           {saveSuccess && (
-            <p className="text-small text-green-500">
-              Settings saved successfully!
+            <p className="text-green-500 text-sm">
+              Zoom API Token saved successfully!
+            </p>
+          )}
+          {saveError && (
+            <p className="text-red-500 text-sm">
+              Please enter a valid Zoom API Token (e.g. https://wmcc.zoom.us/)
             </p>
           )}
         </div>

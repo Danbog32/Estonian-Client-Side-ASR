@@ -12,6 +12,7 @@ import {
   Button,
   useDisclosure,
   Input,
+  ScrollShadow,
 } from "@nextui-org/react";
 import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
@@ -71,100 +72,102 @@ export default function Settings() {
         </Button>
       </div>
       <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose}>
-        <ModalContent className="bg-gray-800 text-white">
+        <ModalContent className="bg-gray-800 text-white max-h-[90dvh] ">
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-white">
                 Settings
               </ModalHeader>
-              <ModalBody className="text-gray-300">
-                <div className="flex flex-col gap-4 mb-4">
-                  <span>Text Size:</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="bordered"
-                      onClick={() => handleTextSizeChange(false)}
-                      className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                    >
-                      -
-                    </Button>
-                    <Input
-                      type="number"
-                      isDisabled
-                      variant="bordered"
-                      value={textSize.toFixed(1)}
-                      size="small"
-                      onChange={(e) =>
-                        setTextSize(
-                          Math.max(1, Math.min(parseFloat(e.target.value), 8))
-                        )
-                      }
-                    />
-                    <Button
-                      variant="bordered"
-                      onClick={() => handleTextSizeChange(true)}
-                      className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                    >
-                      +
-                    </Button>
+              <ScrollShadow hideScrollBar className="flex-1">
+                <ModalBody className="text-gray-300 overflow-auto">
+                  <div className="flex flex-col gap-4 mb-4">
+                    <span>Text Size:</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="bordered"
+                        onClick={() => handleTextSizeChange(false)}
+                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
+                      >
+                        -
+                      </Button>
+                      <Input
+                        type="number"
+                        isDisabled
+                        variant="bordered"
+                        value={textSize.toFixed(1)}
+                        size="small"
+                        onChange={(e) =>
+                          setTextSize(
+                            Math.max(1, Math.min(parseFloat(e.target.value), 8))
+                          )
+                        }
+                      />
+                      <Button
+                        variant="bordered"
+                        onClick={() => handleTextSizeChange(true)}
+                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <span>Line Height:</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="bordered"
+                        onClick={() => handleLineHeightChange(false)}
+                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
+                      >
+                        -
+                      </Button>
+                      <Input
+                        type="number"
+                        isDisabled
+                        variant="bordered"
+                        value={lineHeight.toFixed(1)}
+                        onChange={(e) =>
+                          setLineHeight(
+                            Math.max(1, Math.min(parseFloat(e.target.value), 3))
+                          )
+                        }
+                      />
+                      <Button
+                        variant="bordered"
+                        onClick={() => handleLineHeightChange(true)}
+                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    <span>Subtitle Mode:</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        variant={!subtitleMode ? "bordered" : "solid"}
+                        onClick={() => handleModeChange("text")}
+                        className={`text-white ${
+                          subtitleMode
+                            ? "bg-gray-900 hover:bg-gray-800"
+                            : "bg-gray-700 hover:bg-gray-800"
+                        } transition duration-100`}
+                      >
+                        Text Mode
+                      </Button>
+                      <Button
+                        variant={subtitleMode ? "bordered" : "solid"}
+                        onClick={() => handleModeChange("subtitle")}
+                        className={`text-white ${
+                          !subtitleMode
+                            ? "bg-gray-900 hover:bg-gray-800"
+                            : "bg-gray-700 hover:bg-gray-800"
+                        } transition duration-100`}
+                      >
+                        Subtitle Mode
+                      </Button>
+                    </div>
+                    <ZoomApiSwitchComponent />
+                    <FirebaseApiSwitchComponent />
                   </div>
-                  <span>Line Height:</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="bordered"
-                      onClick={() => handleLineHeightChange(false)}
-                      className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                    >
-                      -
-                    </Button>
-                    <Input
-                      type="number"
-                      isDisabled
-                      variant="bordered"
-                      value={lineHeight.toFixed(1)}
-                      onChange={(e) =>
-                        setLineHeight(
-                          Math.max(1, Math.min(parseFloat(e.target.value), 3))
-                        )
-                      }
-                    />
-                    <Button
-                      variant="bordered"
-                      onClick={() => handleLineHeightChange(true)}
-                      className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                    >
-                      +
-                    </Button>
-                  </div>
-                  <span>Subtitle Mode:</span>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Button
-                      variant={!subtitleMode ? "bordered" : "solid"}
-                      onClick={() => handleModeChange("text")}
-                      className={`text-white ${
-                        subtitleMode
-                          ? "bg-gray-900 hover:bg-gray-800"
-                          : "bg-gray-700 hover:bg-gray-800"
-                      } transition duration-100`}
-                    >
-                      Text Mode
-                    </Button>
-                    <Button
-                      variant={subtitleMode ? "bordered" : "solid"}
-                      onClick={() => handleModeChange("subtitle")}
-                      className={`text-white ${
-                        !subtitleMode
-                          ? "bg-gray-900 hover:bg-gray-800"
-                          : "bg-gray-700 hover:bg-gray-800"
-                      } transition duration-100`}
-                    >
-                      Subtitle Mode
-                    </Button>
-                  </div>
-                  <ZoomApiSwitchComponent />
-                  <FirebaseApiSwitchComponent />
-                </div>
-              </ModalBody>
+                </ModalBody>
+              </ScrollShadow>
               <ModalFooter>
                 <Button color="danger" variant="light" onClick={onClose}>
                   Close
