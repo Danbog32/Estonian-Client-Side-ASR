@@ -1,10 +1,10 @@
-// components/header/FirebaseApiSwitchComponent.tsx
-
 "use client";
 
 import { Switch, cn } from "@nextui-org/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSettings } from "../SettingsContext";
+import QRCode from "react-qr-code";
+import { Icons } from "../icons";
 
 declare global {
   interface Window {
@@ -21,6 +21,8 @@ export default function FirebaseApiSwitchComponent() {
     captionURL,
     setCaptionURL,
   } = useSettings();
+
+  const [showQRCode, setShowQRCode] = useState(false);
 
   // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
@@ -91,15 +93,27 @@ export default function FirebaseApiSwitchComponent() {
       </Switch>
       {firebaseEnabled && captionURL && (
         <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
-          <p>Your live captions are available at:</p>
+          <p className="text-white">Your live captions are available at:</p>
           <a
             href={captionURL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500"
+            className="text-blue-500 break-all"
           >
             {captionURL}
           </a>
+          <button
+            onClick={() => setShowQRCode(!showQRCode)}
+            className="mt-2 flex items-center text-white hover:text-blue-500"
+          >
+            <Icons.qrCode className="mr-2" />
+            {showQRCode ? "Hide QR Code" : "Show QR Code"}
+          </button>
+          {showQRCode && (
+            <div className="mt-2 flex justify-center bg-white p-2 rounded">
+              <QRCode value={captionURL} size={180} />
+            </div>
+          )}
         </div>
       )}
     </div>
