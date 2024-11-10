@@ -1,4 +1,12 @@
-import { X, Copy, Settings, Play, StopCircle, DeleteIcon } from "lucide-react";
+import {
+  X,
+  Copy,
+  Settings,
+  Play,
+  StopCircle,
+  DeleteIcon,
+  QrCodeIcon,
+} from "lucide-react";
 
 export const Icons = {
   close: X,
@@ -7,4 +15,5 @@ export const Icons = {
   play: Play,
   stop: StopCircle,
   delete: DeleteIcon,
+  qrCode: QrCodeIcon,
 };
