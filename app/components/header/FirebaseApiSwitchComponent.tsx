@@ -26,11 +26,6 @@ export default function FirebaseApiSwitchComponent() {
   const [copyMessage, setCopyMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Function to detect touch devices
-  const isTouchDevice = () => {
-    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  };
-
   // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
     if (window.setFirebaseSettings) {
@@ -100,25 +95,15 @@ export default function FirebaseApiSwitchComponent() {
         setTimeout(() => setCopyMessage(""), 2000);
       }
     }
-
-    // Show tooltip on touch devices after tapping
-    if (isTouchDevice()) {
-      setShowTooltip(true);
-      setTimeout(() => setShowTooltip(false), 2000);
-    }
   };
 
   // Functions to handle tooltip visibility for non-touch devices
   const handleQRCodeMouseEnter = () => {
-    if (!isTouchDevice()) {
-      setShowTooltip(true);
-    }
+    setShowTooltip(true);
   };
 
   const handleQRCodeMouseLeave = () => {
-    if (!isTouchDevice()) {
-      setShowTooltip(false);
-    }
+    setShowTooltip(false);
   };
 
   return (
@@ -183,14 +168,14 @@ export default function FirebaseApiSwitchComponent() {
               onMouseLeave={handleQRCodeMouseLeave}
             >
               {showTooltip && (
-                <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md">
-                  {isTouchDevice()
+                <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md hidden md:block">
+                  {copyMessage
                     ? "Link copied to clipboard!"
                     : "Click to copy the link"}
                 </div>
               )}
               <QRCode value={captionURL} size={180} />
-              {copyMessage && !isTouchDevice() && (
+              {copyMessage && (
                 <div className="absolute bottom-full mb-2 text-sm bg-black text-green-500 py-1 px-2 rounded-md text-sm">
                   {copyMessage}
                 </div>
