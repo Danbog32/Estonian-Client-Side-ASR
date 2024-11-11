@@ -67,6 +67,7 @@ export default function ZoomApiSwitchComponent() {
     <div className="flex flex-col gap-2">
       {/* Zoom Enabled Switch */}
       <Switch
+        style={{ touchAction: "pan-y" }}
         isSelected={zoomEnabled}
         onChange={(e) => handleToggle(e.target.checked)}
         classNames={{

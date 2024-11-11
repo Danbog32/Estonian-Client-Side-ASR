@@ -26,6 +26,11 @@ export default function FirebaseApiSwitchComponent() {
   const [copyMessage, setCopyMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // Function to detect touch devices
+  const isTouchDevice = () => {
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  };
+
   // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
     if (window.setFirebaseSettings) {
@@ -95,20 +100,31 @@ export default function FirebaseApiSwitchComponent() {
         setTimeout(() => setCopyMessage(""), 2000);
       }
     }
+
+    // Show tooltip on touch devices after tapping
+    if (isTouchDevice()) {
+      setShowTooltip(true);
+      setTimeout(() => setShowTooltip(false), 2000);
+    }
   };
 
-  // Functions to handle tooltip visibility
+  // Functions to handle tooltip visibility for non-touch devices
   const handleQRCodeMouseEnter = () => {
-    setShowTooltip(true);
+    if (!isTouchDevice()) {
+      setShowTooltip(true);
+    }
   };
 
   const handleQRCodeMouseLeave = () => {
-    setShowTooltip(false);
+    if (!isTouchDevice()) {
+      setShowTooltip(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-2">
       <Switch
+        style={{ touchAction: "pan-y" }}
         isSelected={firebaseEnabled}
         onChange={(e) => setFirebaseEnabled(e.target.checked)}
         classNames={{
@@ -149,27 +165,32 @@ export default function FirebaseApiSwitchComponent() {
           >
             {captionURL}
           </a>
-          <button
-            onClick={() => setShowQRCode(!showQRCode)}
-            className="mt-2 flex items-center text-white hover:text-blue-500"
-          >
-            <Icons.qrCode className="mr-2" />
-            {showQRCode ? "Hide QR Code" : "Show QR Code"}
-          </button>
+          <div className="mt-2">
+            <button
+              onClick={() => setShowQRCode(!showQRCode)}
+              className="text-white hover:text-blue-500 flex items-center"
+            >
+              <Icons.qrCode className="mr-2" />
+              {showQRCode ? "Hide QR Code" : "Show QR Code"}
+            </button>
+          </div>
           {showQRCode && (
             <div
               className="mt-2 flex flex-col items-center bg-white p-2 rounded cursor-pointer relative"
+              style={{ touchAction: "pan-y" }}
               onClick={handleQRCodeClick}
               onMouseEnter={handleQRCodeMouseEnter}
               onMouseLeave={handleQRCodeMouseLeave}
             >
               {showTooltip && (
                 <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md">
-                  Click to copy the link
+                  {isTouchDevice()
+                    ? "Link copied to clipboard!"
+                    : "Click to copy the link"}
                 </div>
               )}
               <QRCode value={captionURL} size={180} />
-              {copyMessage && (
+              {copyMessage && !isTouchDevice() && (
                 <div className="absolute bottom-full mb-2 text-sm bg-black text-green-500 py-1 px-2 rounded-md text-sm">
                   {copyMessage}
                 </div>
