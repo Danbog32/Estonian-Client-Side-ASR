@@ -23,6 +23,8 @@ export default function FirebaseApiSwitchComponent() {
   } = useSettings();
 
   const [showQRCode, setShowQRCode] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
@@ -59,9 +61,55 @@ export default function FirebaseApiSwitchComponent() {
     }
   }, [captionName, firebaseEnabled, setCaptionName, setCaptionURL]);
 
+  // Function to handle QR code click
+  const handleQRCodeClick = () => {
+    if (navigator.clipboard && window.isSecureContext) {
+      // Use navigator.clipboard API
+      navigator.clipboard.writeText(captionURL).then(
+        () => {
+          setCopyMessage("Link copied to clipboard!");
+          setTimeout(() => setCopyMessage(""), 2000);
+        },
+        () => {
+          setCopyMessage("Failed to copy link");
+          setTimeout(() => setCopyMessage(""), 2000);
+        }
+      );
+    } else {
+      // Fallback method using a temporary textarea
+      const textArea = document.createElement("textarea");
+      textArea.value = captionURL;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setCopyMessage("Link copied to clipboard!");
+      } catch (err) {
+        setCopyMessage("Failed to copy link");
+      } finally {
+        textArea.remove();
+        setTimeout(() => setCopyMessage(""), 2000);
+      }
+    }
+  };
+
+  // Functions to handle tooltip visibility for non-touch devices
+  const handleQRCodeMouseEnter = () => {
+    setShowTooltip(true);
+  };
+
+  const handleQRCodeMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <Switch
+        style={{ touchAction: "pan-y" }}
         isSelected={firebaseEnabled}
         onChange={(e) => setFirebaseEnabled(e.target.checked)}
         classNames={{
@@ -102,16 +150,36 @@ export default function FirebaseApiSwitchComponent() {
           >
             {captionURL}
           </a>
-          <button
-            onClick={() => setShowQRCode(!showQRCode)}
-            className="mt-2 flex items-center text-white hover:text-blue-500"
-          >
-            <Icons.qrCode className="mr-2" />
-            {showQRCode ? "Hide QR Code" : "Show QR Code"}
-          </button>
+          <div className="mt-2">
+            <button
+              onClick={() => setShowQRCode(!showQRCode)}
+              className="text-white hover:text-blue-500 flex items-center"
+            >
+              <Icons.qrCode className="mr-2" />
+              {showQRCode ? "Hide QR Code" : "Show QR Code"}
+            </button>
+          </div>
           {showQRCode && (
-            <div className="mt-2 flex justify-center bg-white p-2 rounded">
+            <div
+              className="mt-2 flex flex-col items-center bg-white p-2 rounded cursor-pointer relative"
+              style={{ touchAction: "pan-y" }}
+              onClick={handleQRCodeClick}
+              onMouseEnter={handleQRCodeMouseEnter}
+              onMouseLeave={handleQRCodeMouseLeave}
+            >
+              {showTooltip && (
+                <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md hidden md:block">
+                  {copyMessage
+                    ? "Link copied to clipboard!"
+                    : "Click to copy the link"}
+                </div>
+              )}
               <QRCode value={captionURL} size={180} />
+              {copyMessage && (
+                <div className="absolute bottom-full mb-2 text-sm bg-black text-green-500 py-1 px-2 rounded-md text-sm">
+                  {copyMessage}
+                </div>
+              )}
             </div>
           )}
         </div>
