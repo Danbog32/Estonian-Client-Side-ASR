@@ -233,13 +233,50 @@ function initSherpaOnnxOnlineModelConfig(config, Module) {
 }
 
 function initSherpaOnnxFeatureConfig(config, Module) {
-  const len = 2 * 4; // 2 pointers
-  const ptr = Module._malloc(len);
+  try {
+    const len = 2 * 4; // 2 pointers
+    const ptr = Module._malloc(len);
 
-  Module.setValue(ptr, config.sampleRate, "i32");
-  Module.setValue(ptr + 4, config.featureDim, "i32");
-  return { ptr: ptr, len: len };
+    Module.setValue(ptr, config.sampleRate, "i32");
+    Module.setValue(ptr + 4, config.featureDim, "i32");
+    return { ptr: ptr, len: len };
+  } catch (error) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Module._malloc is not a function")
+    ) {
+      console.error("Module._malloc is not available. Reloading the page...");
+      window.location.reload();
+    } else {
+      throw error; // Re-throw the error if it's a different issue
+    }
+  }
 }
+
+// Handle synchronous errors
+window.addEventListener("error", function (event) {
+  if (
+    event.message &&
+    event.message.includes("Module._malloc is not a function")
+  ) {
+    console.error("Detected Module._malloc error. Reloading the page...");
+    window.location.reload();
+  }
+});
+
+// Handle unhandled promise rejections
+window.addEventListener("unhandledrejection", function (event) {
+  if (
+    event.reason &&
+    event.reason.message &&
+    event.reason.message.includes("Module._malloc is not a function")
+  ) {
+    console.error(
+      "Detected Module._malloc error in promise. Reloading the page..."
+    );
+    window.location.reload();
+  }
+});
 
 function initSherpaOnnxOnlineCtcFstDecoderConfig(config, Module) {
   const len = 2 * 4;
