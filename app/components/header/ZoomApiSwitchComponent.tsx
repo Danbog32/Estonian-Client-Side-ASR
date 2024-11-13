@@ -13,14 +13,44 @@ declare global {
 }
 
 export default function ZoomApiSwitchComponent() {
-  const { zoomEnabled, setZoomEnabled, zoomApiToken, setZoomApiToken } =
-    useSettings();
+  const {
+    zoomEnabled,
+    setZoomEnabled,
+    zoomApiToken,
+    setZoomApiToken,
+    language,
+  } = useSettings();
 
   // Local state to hold the Zoom API Token before saving
   const [localZoomApiToken, setLocalZoomApiToken] = useState(zoomApiToken);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(false);
+
+  const translations = {
+    en: {
+      addCaptionsToZoom: "Add captions to Zoom",
+      captionsWillBeDisplayed: "Captions will be displayed in the Zoom app",
+      zoomApiTokenLabel: "Zoom API Token",
+      zoomApiTokenPlaceholder: "Example: https://wmcc.zoom.us/",
+      save: "Save",
+      tokenSavedSuccess: "Zoom API Token saved successfully!",
+      tokenSaveError:
+        "Please enter a valid Zoom API Token (e.g. https://wmcc.zoom.us/)",
+    },
+    et: {
+      addCaptionsToZoom: "Lisa subtiitrid Zoomi",
+      captionsWillBeDisplayed: "Subtiitrid kuvatakse Zoomi rakenduses",
+      zoomApiTokenLabel: "Zoomi API märk",
+      zoomApiTokenPlaceholder: "Näide: https://wmcc.zoom.us/",
+      save: "Salvesta",
+      tokenSavedSuccess: "Zoomi API märk edukalt salvestatud!",
+      tokenSaveError:
+        "Palun sisestage kehtiv Zoomi API märk (nt https://wmcc.zoom.us/)",
+    },
+  };
+
+  const t = translations[language as "en" | "et"] || translations.en;
 
   // Synchronize localZoomApiToken with global zoomApiToken
   useEffect(() => {
@@ -89,10 +119,8 @@ export default function ZoomApiSwitchComponent() {
         }}
       >
         <div className="flex flex-col gap-1">
-          <p className="text-medium text-white">Add captions to Zoom</p>
-          <p className="text-tiny text-white">
-            Captions will be displayed in the Zoom app
-          </p>
+          <p className="text-medium text-white">{t.addCaptionsToZoom}</p>
+          <p className="text-tiny text-white">{t.captionsWillBeDisplayed}</p>
         </div>
       </Switch>
 
@@ -101,8 +129,8 @@ export default function ZoomApiSwitchComponent() {
         <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
           <Input
             type="text"
-            placeholder="Example: https://wmcc.zoom.us/"
-            label="Zoom API Token"
+            placeholder={t.zoomApiTokenPlaceholder}
+            label={t.zoomApiTokenLabel}
             variant="bordered"
             size="lg"
             color="primary"
@@ -117,17 +145,13 @@ export default function ZoomApiSwitchComponent() {
             isLoading={isSaving}
             disabled={isSaving}
           >
-            Save
+            {t.save}
           </Button>
           {saveSuccess && (
-            <p className="text-green-500 text-sm">
-              Zoom API Token saved successfully!
-            </p>
+            <p className="text-green-500 text-sm">{t.tokenSavedSuccess}</p>
           )}
           {saveError && (
-            <p className="text-red-500 text-sm">
-              Please enter a valid Zoom API Token (e.g. https://wmcc.zoom.us/)
-            </p>
+            <p className="text-red-500 text-sm">{t.tokenSaveError}</p>
           )}
         </div>
       )}

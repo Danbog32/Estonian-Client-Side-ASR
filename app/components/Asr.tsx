@@ -1,18 +1,44 @@
+// components/Asr.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { Progress } from "@nextui-org/react";
-import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
-import TextAreaDisplay from "./TextAreaDisplay"; // Adjust the path as necessary
-import AudioSection from "./AudioSection"; // Adjust the path as necessary
-import Script from "next/script";
+import { useSettings } from "./SettingsContext";
+import TextAreaDisplay from "./TextAreaDisplay";
+import AudioSection from "./AudioSection";
 
 export default function Asr() {
   const [loading, setLoading] = useState(true);
-  const [loadingMessage, setLoadingMessage] = useState(
-    "Downloading model, please wait..."
-  );
-  const { textSize, lineHeight, showSoundClips } = useSettings();
+  const { textSize, lineHeight, showSoundClips, language } = useSettings() as {
+    textSize: number;
+    lineHeight: number;
+    showSoundClips: boolean;
+    language: "en" | "et";
+  };
+  const [loadingMessage, setLoadingMessage] = useState("");
+
+  // Translations for different languages
+  const translations = {
+    en: {
+      heading: "Estonian Automatic Speech Recognition",
+      downloadingModel: "Downloading model, please wait...",
+      initializingModel: "Initializing ASR model, just a second...",
+    },
+    et: {
+      heading: "Eesti automaatne kõnetuvastus",
+      downloadingModel: "Laen mudelit, palun oodake...",
+      initializingModel: "Käivitab ASR-mudeli, hetk...",
+    },
+  };
+
+  // Get the appropriate translations based on the selected language
+  const t = translations[language] || translations.en;
+
+  // Set the initial loading message based on the language
+  useEffect(() => {
+    setLoadingMessage(t.downloadingModel);
+  }, [language]);
 
   useEffect(() => {
     const loadScripts = async () => {
@@ -72,7 +98,7 @@ export default function Asr() {
       <div className="flex flex-col items-center min-h-[calc(100vh-140px)] w-full max-w-[1200px] text-white">
         <div className="w-full p-8 relative h-full">
           <h1 className="sm:text-3xl md:text-2xl text-xl font-bold mb-6 text-center">
-            Estonian Automatic Speech Recognition
+            {t.heading}
           </h1>
 
           {loading && (

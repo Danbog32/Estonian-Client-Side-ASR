@@ -1,3 +1,5 @@
+// components/header/Navbar.jsx
+
 "use client";
 
 import React from "react";
@@ -6,29 +8,33 @@ import {
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-  Link,
   Button,
 } from "@nextui-org/react";
 import { TalTechLogo } from "./TalTechLogo.jsx";
 import { Icons } from "../icons";
-import Settings from "./Settings"; // Adjust the path as necessary
+import Settings from "./Settings";
+import { useSettings } from "../SettingsContext";
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isRecording, setIsRecording] = React.useState(false);
 
-  const menuItems = [
-    "Profile",
-    "Dashboard",
-    "Activity",
-    "Analytics",
-    "System",
-    "Deployments",
-    "My Settings",
-    "Team Settings",
-    "Help & Feedback",
-    "Log Out",
-  ];
+  const { language }: { language: "en" | "et" } = useSettings();
+
+  const translations = {
+    en: {
+      start: "Start",
+      stop: "Stop",
+      clear: "Clear",
+    },
+    et: {
+      start: "Alusta",
+      stop: "Peata",
+      clear: "Puhasta",
+    },
+  };
+
+  const t = translations[language as "en" | "et"] || translations.en;
 
   const handleButtonClick = () => {
     setIsRecording(!isRecording);
@@ -61,7 +67,7 @@ export default function App() {
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
           >
             <Icons.play size={20} color="white" />
-            Start
+            {t.start}
           </button>
         </NavbarItem>
         <NavbarItem>
@@ -71,7 +77,7 @@ export default function App() {
             className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
           >
             <Icons.stop size={21} color="white" />
-            Stop
+            {t.stop}
           </button>
         </NavbarItem>
         <NavbarItem>
@@ -80,7 +86,7 @@ export default function App() {
             className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1"
           >
             <Icons.delete size={21} color="white" />
-            Clear
+            {t.clear}
           </button>
         </NavbarItem>
       </NavbarContent>
@@ -96,7 +102,7 @@ export default function App() {
             } text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1 ml-2`}
           >
             <Icons.play size={20} color="white" />
-            {isRecording ? "Stop" : "Start"}
+            {isRecording ? t.stop : t.start}
           </button>
         </NavbarItem>
       </NavbarContent>

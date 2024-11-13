@@ -27,6 +27,8 @@ export default function Settings() {
     setLineHeight,
     subtitleMode,
     setSubtitleMode,
+    language,
+    setLanguage,
   } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
@@ -58,6 +60,31 @@ export default function Settings() {
     }
   };
 
+  const translations = {
+    en: {
+      settings: "Settings",
+      textSize: "Text Size:",
+      lineHeight: "Line Height:",
+      subtitleMode: "Subtitle Mode:",
+      textMode: "Text Mode",
+      subtitleModeButton: "Subtitle Mode",
+      languageLabel: "Language:",
+      close: "Close",
+    },
+    et: {
+      settings: "Seaded",
+      textSize: "Teksti suurus:",
+      lineHeight: "Reavahe:",
+      subtitleMode: "Subtiitrite režiim:",
+      textMode: "Tekstirežiim",
+      subtitleModeButton: "Subtiitrite režiim",
+      languageLabel: "Keel:",
+      close: "Sulge",
+    },
+  };
+
+  const t = translations[language];
+
   return (
     <div className="dark">
       <div className="flex flex-wrap gap-0 sm:gap-3">
@@ -68,7 +95,7 @@ export default function Settings() {
           className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
         >
           <Icons.settings size={20} color="white" />
-          <span className="hidden sm:inline">Settings</span>
+          <span className="hidden sm:inline">{t.settings}</span>
         </Button>
       </div>
       <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose}>
@@ -76,12 +103,15 @@ export default function Settings() {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1 text-white">
-                Settings
+                {t.settings}
               </ModalHeader>
               <ScrollShadow hideScrollBar className="flex-1">
                 <ModalBody className="text-gray-300 overflow-auto">
                   <div className="flex flex-col gap-4 mb-4">
-                    <span>Text Size:</span>
+                    <div className="flex gap-1 items-center">
+                      <Icons.textSelect size={20} color="white" />
+                      {t.textSize}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="bordered"
@@ -110,7 +140,10 @@ export default function Settings() {
                         +
                       </Button>
                     </div>
-                    <span>Line Height:</span>
+                    <div className="flex gap-1 items-center">
+                      <Icons.text size={20} color="white" />
+                      {t.lineHeight}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="bordered"
@@ -138,8 +171,11 @@ export default function Settings() {
                         +
                       </Button>
                     </div>
-                    <span>Subtitle Mode:</span>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-1 items-center">
+                      <Icons.wholeWord size={20} color="white" />
+                      {t.subtitleMode}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <Button
                         variant={!subtitleMode ? "bordered" : "solid"}
                         onClick={() => handleModeChange("text")}
@@ -149,7 +185,7 @@ export default function Settings() {
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
-                        Text Mode
+                        {t.textMode}
                       </Button>
                       <Button
                         variant={subtitleMode ? "bordered" : "solid"}
@@ -160,7 +196,35 @@ export default function Settings() {
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
-                        Subtitle Mode
+                        {t.subtitleModeButton}
+                      </Button>
+                    </div>
+                    <div className="flex gap-1 items-center">
+                      <Icons.languages size={20} color="white" />
+                      {t.languageLabel}
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        variant={language === "en" ? "bordered" : "solid"}
+                        onClick={() => setLanguage("en")}
+                        className={`text-white ${
+                          language !== "en"
+                            ? "bg-gray-900 hover:bg-gray-800"
+                            : "bg-gray-700 hover:bg-gray-800"
+                        } transition duration-100`}
+                      >
+                        English
+                      </Button>
+                      <Button
+                        variant={language === "et" ? "bordered" : "solid"}
+                        onClick={() => setLanguage("et")}
+                        className={`text-white ${
+                          language !== "et"
+                            ? "bg-gray-900 hover:bg-gray-800"
+                            : "bg-gray-700 hover:bg-gray-800"
+                        } transition duration-100`}
+                      >
+                        Eesti
                       </Button>
                     </div>
                     <ZoomApiSwitchComponent />
@@ -170,7 +234,7 @@ export default function Settings() {
               </ScrollShadow>
               <ModalFooter>
                 <Button color="danger" variant="light" onClick={onClose}>
-                  Close
+                  {t.close}
                 </Button>
               </ModalFooter>
             </>
