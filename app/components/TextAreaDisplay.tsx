@@ -1,3 +1,7 @@
+// components/TextAreaDisplay.jsx
+
+"use client";
+
 import { useState } from "react";
 import {
   Popover,
@@ -5,7 +9,8 @@ import {
   PopoverContent,
   Button,
 } from "@nextui-org/react";
-import { Icons } from "./icons";
+import { Icons } from "./icons"; // Adjust the path as necessary
+import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
 
 interface TextAreaDisplayProps {
   textSize: number;
@@ -17,13 +22,41 @@ const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
   lineHeight,
 }) => {
   const [popoverVisible, setPopoverVisible] = useState(false);
+  const { language } = useSettings() as { language: "en" | "et" };
+
+  // Translations for different languages
+  const translations = {
+    en: {
+      copyText: "Copy text",
+      textCopied: "Text copied!",
+      copyFailed: "Failed to copy text.",
+      clickToCopy: "Click to copy the text",
+    },
+    et: {
+      copyText: "Kopeeri tekst",
+      textCopied: "Tekst kopeeritud!",
+      copyFailed: "Teksti kopeerimine ebaõnnestus.",
+      clickToCopy: "Klõpsa teksti kopeerimiseks",
+    },
+  };
+
+  // Get the appropriate translations based on the selected language
+  const t = translations[language] || translations.en;
 
   const copyText = () => {
     const textarea = document.getElementById("results") as HTMLTextAreaElement;
     if (textarea) {
       textarea.select();
-      document.execCommand("copy");
-      setPopoverVisible(true);
+      try {
+        const successful = document.execCommand("copy");
+        if (successful) {
+          setPopoverVisible(true);
+        } else {
+          console.error("Copy command was unsuccessful.");
+        }
+      } catch (err) {
+        console.error("Copy command failed:", err);
+      }
       document.getSelection()?.removeAllRanges();
     }
   };
@@ -56,12 +89,12 @@ const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
             onMouseLeave={() => setPopoverVisible(false)}
           >
             <Icons.copy size={25} color="white" />
-            Copy text
+            {t.copyText}
           </Button>
         </PopoverTrigger>
         <PopoverContent>
           <div className="px-1 py-2">
-            <div className="text-small font-bold">Text copied!</div>
+            <div className="text-small font-bold">{t.textCopied}</div>
           </div>
         </PopoverContent>
       </Popover>
