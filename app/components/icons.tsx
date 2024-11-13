@@ -6,6 +6,10 @@ import {
   StopCircle,
   DeleteIcon,
   QrCodeIcon,
+  TextSelect,
+  TextIcon,
+  WholeWord,
+  Languages,
 } from "lucide-react";
 
 export const Icons = {
@@ -16,4 +20,8 @@ export const Icons = {
   stop: StopCircle,
   delete: DeleteIcon,
   qrCode: QrCodeIcon,
+  textSelect: TextSelect,
+  text: TextIcon,
+  wholeWord: WholeWord,
+  languages: Languages,
 };

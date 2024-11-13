@@ -1,3 +1,5 @@
+// components/FirebaseApiSwitchComponent.jsx
+
 "use client";
 
 import { Switch, cn } from "@nextui-org/react";
@@ -20,11 +22,40 @@ export default function FirebaseApiSwitchComponent() {
     setCaptionName,
     captionURL,
     setCaptionURL,
+    language,
   } = useSettings();
 
   const [showQRCode, setShowQRCode] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
+
+  const translations = {
+    en: {
+      castCaptions: "Cast captions to multiple people",
+      captionsWillBeSent:
+        "Captions will be sent to multiple people who have the link.",
+      yourLiveCaptions: "Your live captions are available at:",
+      hideQRCode: "Hide QR Code",
+      showQRCode: "Show QR Code",
+      linkCopied: "Link copied to clipboard!",
+      failedToCopy: "Failed to copy link",
+      clickToCopy: "Click to copy the link",
+    },
+    et: {
+      castCaptions: "Saada subtiitrid mitmele inimesele",
+      captionsWillBeSent:
+        "Subtiitrid saadetakse mitmele inimesele, kellel on link.",
+      yourLiveCaptions: "Teie otse subtiitrid on saadaval aadressil:",
+      hideQRCode: "Peida QR-kood",
+      showQRCode: "Näita QR-koodi",
+      linkCopied: "Link kopeeritud lõikelauale!",
+      failedToCopy: "Lingi kopeerimine ebaõnnestus",
+      clickToCopy: "Klõpsake lingi kopeerimiseks",
+    },
+  };
+
+  const t =
+    translations[language as keyof typeof translations] || translations.en;
 
   // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
@@ -67,11 +98,11 @@ export default function FirebaseApiSwitchComponent() {
       // Use navigator.clipboard API
       navigator.clipboard.writeText(captionURL).then(
         () => {
-          setCopyMessage("Link copied to clipboard!");
+          setCopyMessage(t.linkCopied);
           setTimeout(() => setCopyMessage(""), 2000);
         },
         () => {
-          setCopyMessage("Failed to copy link");
+          setCopyMessage(t.failedToCopy);
           setTimeout(() => setCopyMessage(""), 2000);
         }
       );
@@ -87,9 +118,9 @@ export default function FirebaseApiSwitchComponent() {
       textArea.select();
       try {
         document.execCommand("copy");
-        setCopyMessage("Link copied to clipboard!");
+        setCopyMessage(t.linkCopied);
       } catch (err) {
-        setCopyMessage("Failed to copy link");
+        setCopyMessage(t.failedToCopy);
       } finally {
         textArea.remove();
         setTimeout(() => setCopyMessage(""), 2000);
@@ -131,17 +162,13 @@ export default function FirebaseApiSwitchComponent() {
         }}
       >
         <div className="flex flex-col gap-1">
-          <p className="text-medium text-white">
-            Cast captions to multiple people
-          </p>
-          <p className="text-tiny text-white">
-            Captions will be sent to multiple people who have the link.
-          </p>
+          <p className="text-medium text-white">{t.castCaptions}</p>
+          <p className="text-tiny text-white">{t.captionsWillBeSent}</p>
         </div>
       </Switch>
       {firebaseEnabled && captionURL && (
         <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
-          <p className="text-white">Your live captions are available at:</p>
+          <p className="text-white">{t.yourLiveCaptions}</p>
           <a
             href={captionURL}
             target="_blank"
@@ -156,7 +183,7 @@ export default function FirebaseApiSwitchComponent() {
               className="text-white hover:text-blue-500 flex items-center"
             >
               <Icons.qrCode className="mr-2" />
-              {showQRCode ? "Hide QR Code" : "Show QR Code"}
+              {showQRCode ? t.hideQRCode : t.showQRCode}
             </button>
           </div>
           {showQRCode && (
@@ -169,9 +196,7 @@ export default function FirebaseApiSwitchComponent() {
             >
               {showTooltip && (
                 <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md hidden md:block">
-                  {copyMessage
-                    ? "Link copied to clipboard!"
-                    : "Click to copy the link"}
+                  {copyMessage ? t.linkCopied : t.clickToCopy}
                 </div>
               )}
               <QRCode value={captionURL} size={180} />
