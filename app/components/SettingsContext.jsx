@@ -22,7 +22,7 @@ export const SettingsProvider = ({ children }) => {
   const [zoomApiToken, setZoomApiToken] = useState("");
   const [captionName, setCaptionName] = useState("");
   const [captionURL, setCaptionURL] = useState("");
-  const [language, setLanguage] = useState("en"); // Add language state
+  const [language, setLanguage] = useState("et"); // Add language state
 
   return (
     <SettingsContext.Provider

@@ -58,7 +58,7 @@ export default function Asr() {
       const updateProgress = () => {
         loadedScripts += 1;
         if (loadedScripts === totalScripts) {
-          setLoadingMessage("Initializing asr model, just a second...");
+          setLoadingMessage("Laen mudelit, palun oodake...");
         }
       };
 
@@ -103,15 +103,15 @@ export default function Asr() {
 
           {loading && (
             <>
+              <span id="hint" className="mb-4 text-lg text-gray-300">
+                {loadingMessage}
+              </span>
               <Progress
                 size="sm"
                 isIndeterminate
                 aria-label="Loading..."
                 className="full-w"
               />
-              <span id="hint" className="mb-4 text-lg text-gray-300">
-                {loadingMessage}
-              </span>
             </>
           )}
 
