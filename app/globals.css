@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
 :root {
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
@@ -28,7 +26,7 @@
     rgb(var(--background-start-rgb));
 } */
 
-body{
+body {
   background-color: black;
 }
 
@@ -37,7 +35,6 @@ body{
     text-wrap: balance;
   }
 }
-
 
 .clip {
   display: flex;
@@ -69,8 +66,14 @@ body{
 
 .clip button.delete:hover {
   background-color: #dc2626;
-} 
+}
 
+.delete svg {
+  vertical-align: middle;
+  color: white;
+  width: 20px;
+  height: 20px;
+}
 
 .custom-scrollbar {
   scrollbar-width: thin;
@@ -96,8 +99,6 @@ body{
   background-color: #718096;
 }
 
-
-
 @media screen and (max-width: 768px) {
   .clip {
     flex-direction: column;
@@ -108,7 +109,6 @@ body{
     margin-right: 0;
     margin-bottom: 1rem;
   }
-  
 }
 
 /* .wrapper {

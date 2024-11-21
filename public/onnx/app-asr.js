@@ -412,18 +412,25 @@ if (navigator.mediaDevices.getUserMedia) {
       const clipLabel = document.createElement("p");
       const audio = document.createElement("audio");
       const deleteButton = document.createElement("button");
+
+      // Use an inline SVG for the trash icon
+      const deleteIcon = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M3 6h18v2H3V6zm2 2h14l-1.5 14h-11L5 8zm6-3h2v2h-2V5zm-3.5 0H11v2H8.5V5zm7 0H15v2h-2.5V5z"/>
+        </svg>
+      `;
+
       clipContainer.classList.add("clip");
       audio.setAttribute("controls", "");
-      deleteButton.textContent = "Delete";
       deleteButton.className = "delete";
+      deleteButton.innerHTML = deleteIcon; // Set the inner HTML of the button to the SVG
 
       clipLabel.textContent = clipName;
 
-      // add cursor pointer to clipLabel
+      // Add cursor pointer to clipLabel
       clipLabel.style.cursor = "pointer";
 
       clipContainer.appendChild(audio);
-
       clipContainer.appendChild(clipLabel);
       clipContainer.appendChild(deleteButton);
       soundClips.appendChild(clipContainer);
@@ -439,7 +446,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
       deleteButton.onclick = function (e) {
         let evtTgt = e.target;
-        evtTgt.parentNode.parentNode.removeChild(evtTgt.parentNode);
+        evtTgt.closest(".clip").remove(); // Safely find the parent container
       };
 
       clipLabel.onclick = function () {
