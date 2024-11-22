@@ -152,7 +152,7 @@ function getDisplayResult() {
   const textToSend = checkAndClearText(cleanAns);
 
   // Send captions if new words are detected
-  const captionText = getNewCaptionText(cleanAns);
+  const captionText = cleanText(getNewCaptionText(cleanAns));
   if (captionText) {
     if (firebaseEnabled) {
       sendCaptionToFirebase(textToSend);
@@ -183,15 +183,22 @@ function cleanText(text) {
 }
 
 function getNewCaptionText(currentResult) {
-  // Clean and trim the current result and last sent caption
-  const cleanCurrentResult = cleanText(currentResult);
-  const cleanLastSentCaption = cleanText(lastSentCaption);
+  // Remove leading and trailing spaces
+  let current = currentResult.trim();
+  let lastSent = lastSentCaption.trim();
 
-  // Check if the texts are different
-  if (cleanCurrentResult !== cleanLastSentCaption) {
-    return cleanCurrentResult; // Return the entire text
+  if (current === lastSent) {
+    // No new text
+    return "";
+  }
+
+  if (current.startsWith(lastSent)) {
+    // Get the new part
+    let newText = current.substring(lastSent.length).trim();
+    return newText;
   } else {
-    return null; // No new words added
+    // The current result has changed significantly, return the full current result
+    return current;
   }
 }
 
@@ -294,10 +301,6 @@ if (navigator.mediaDevices.getUserMedia) {
         let displayText = getLastNWords(combinedText, maxWords);
 
         textArea.value = cleanText(displayText);
-
-        if (!isEndpoint) {
-          textArea.value = cleanText(displayText);
-        }
       } else {
         textArea.value = getDisplayResult();
       }
@@ -311,6 +314,23 @@ if (navigator.mediaDevices.getUserMedia) {
         let words = text.trim().split(/\s+/);
         if (words.length > n) {
           return words.slice(words.length - n).join(" ");
+        }
+
+        const cleanAns = cleanText(text);
+
+        // Check text size and clear if necessary
+        const textToSend = checkAndClearText(cleanAns);
+
+        // Send captions if new words are detected
+        const captionText = cleanText(getNewCaptionText(cleanAns));
+        if (captionText) {
+          if (firebaseEnabled) {
+            sendCaptionToFirebase(textToSend);
+          }
+          if (sendToZoomEnabled) {
+            sendCaptionToZoom(captionText);
+          }
+          lastSentCaption = cleanAns.trim(); // Update lastSentCaption
         }
         return text;
       }
@@ -342,7 +362,7 @@ if (navigator.mediaDevices.getUserMedia) {
           }
 
           // Set the updated resultList to the remaining sentences
-          resultList = sentences.map((sentence) => sentence.trim() + "."); // Add periods back to the end of each sentence
+          resultList = sentences.map((sentence) => sentence.trim()); // Add periods back to the end of each sentence
         } else {
           resultList.push(newResult);
         }
@@ -373,7 +393,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (toggleBtn) {
         toggleBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="none" class="w-4 h-4"><circle cx="12" cy="12" r="8" /></svg> Stop';
+          '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="none" class="w-4 h-4"><circle cx="12" cy="12" r="8" /></svg> Peata';
 
         toggleBtn.className =
           "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
@@ -392,7 +412,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (toggleBtn) {
         toggleBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><polygon points="5,3 19,12 5,21" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" /></svg> Start';
+          '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><polygon points="5,3 19,12 5,21" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" /></svg> Alusta';
 
         toggleBtn.className =
           "bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
