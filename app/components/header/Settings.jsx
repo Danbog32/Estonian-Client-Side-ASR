@@ -181,7 +181,7 @@ export default function Settings() {
                         onClick={() => handleModeChange("text")}
                         className={`text-white ${
                           subtitleMode
-                            ? "bg-gray-900 hover:bg-gray-800"
+                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
@@ -192,7 +192,7 @@ export default function Settings() {
                         onClick={() => handleModeChange("subtitle")}
                         className={`text-white ${
                           !subtitleMode
-                            ? "bg-gray-900 hover:bg-gray-800"
+                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
@@ -209,7 +209,7 @@ export default function Settings() {
                         onClick={() => setLanguage("en")}
                         className={`text-white ${
                           language !== "en"
-                            ? "bg-gray-900 hover:bg-gray-800"
+                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
@@ -220,7 +220,7 @@ export default function Settings() {
                         onClick={() => setLanguage("et")}
                         className={`text-white ${
                           language !== "et"
-                            ? "bg-gray-900 hover:bg-gray-800"
+                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                             : "bg-gray-700 hover:bg-gray-800"
                         } transition duration-100`}
                       >
