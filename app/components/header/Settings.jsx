@@ -16,40 +16,21 @@ import {
 } from "@nextui-org/react";
 import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
+// import FocusModeToggle from "./FocusModeToggle";
+import TextSizeSlider from "./TextSizeSlider";
+import LineHeightSlider from "./LineHeightSlider";
 import ZoomApiSwitchComponent from "./ZoomApiSwitchComponent";
 import FirebaseApiSwitchComponent from "./FirebaseApiSwitchComponent";
 
 export default function Settings() {
-  const {
-    textSize,
-    setTextSize,
-    lineHeight,
-    setLineHeight,
-    subtitleMode,
-    setSubtitleMode,
-    language,
-    setLanguage,
-  } = useSettings();
+  const { subtitleMode, setSubtitleMode, language, setLanguage } =
+    useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [backdrop, setBackdrop] = React.useState("opaque");
 
   const handleOpen = () => {
     setBackdrop("opaque");
     onOpen();
-  };
-
-  const handleTextSizeChange = (increment) => {
-    setTextSize((prevSize) => {
-      const newSize = increment ? prevSize + 0.5 : prevSize - 0.5;
-      return Math.max(1, Math.min(newSize, 8));
-    });
-  };
-
-  const handleLineHeightChange = (increment) => {
-    setLineHeight((prevHeight) => {
-      const newHeight = increment ? prevHeight + 0.1 : prevHeight - 0.1;
-      return Math.max(1, Math.min(newHeight, 3));
-    });
   };
 
   const handleModeChange = (mode) => {
@@ -63,8 +44,6 @@ export default function Settings() {
   const translations = {
     en: {
       settings: "Settings",
-      textSize: "Text Size:",
-      lineHeight: "Line Height:",
       subtitleMode: "Subtitle Mode:",
       textMode: "Text Mode",
       subtitleModeButton: "Subtitle Mode",
@@ -73,8 +52,6 @@ export default function Settings() {
     },
     et: {
       settings: "Seaded",
-      textSize: "Teksti suurus:",
-      lineHeight: "Reavahe:",
       subtitleMode: "Subtiitrite režiim:",
       textMode: "Tekstirežiim",
       subtitleModeButton: "Subtiitrite režiim",
@@ -107,128 +84,74 @@ export default function Settings() {
               </ModalHeader>
               <ScrollShadow hideScrollBar className="flex-1">
                 <ModalBody className="text-gray-300 overflow-auto">
-                  <div className="flex flex-col gap-4 mb-4">
-                    <div className="flex gap-1 items-center">
-                      <Icons.textSelect size={20} color="white" />
-                      {t.textSize}
+                  <div className="flex flex-col gap-5 mb-4">
+                    <TextSizeSlider />
+                    <LineHeightSlider />
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-1 items-center">
+                        <Icons.wholeWord size={20} color="white" />
+                        {t.subtitleMode}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={!subtitleMode ? "bordered" : "solid"}
+                          onClick={() => handleModeChange("text")}
+                          className={`text-white ${
+                            subtitleMode
+                              ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
+                              : "bg-gray-700 hover:bg-gray-800"
+                          } transition duration-100`}
+                        >
+                          {t.textMode}
+                        </Button>
+                        <Button
+                          variant={subtitleMode ? "bordered" : "solid"}
+                          onClick={() => handleModeChange("subtitle")}
+                          className={`text-white ${
+                            !subtitleMode
+                              ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
+                              : "bg-gray-700 hover:bg-gray-800"
+                          } transition duration-100`}
+                        >
+                          {t.subtitleModeButton}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="bordered"
-                        onClick={() => handleTextSizeChange(false)}
-                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                      >
-                        -
-                      </Button>
-                      <Input
-                        type="number"
-                        isDisabled
-                        variant="bordered"
-                        value={textSize.toFixed(1)}
-                        size="small"
-                        onChange={(e) =>
-                          setTextSize(
-                            Math.max(1, Math.min(parseFloat(e.target.value), 8))
-                          )
-                        }
-                      />
-                      <Button
-                        variant="bordered"
-                        onClick={() => handleTextSizeChange(true)}
-                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                      >
-                        +
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-1 items-center">
+                        <Icons.languages size={20} color="white" />
+                        {t.languageLabel}
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Button
+                          variant={language === "en" ? "bordered" : "solid"}
+                          onClick={() => setLanguage("en")}
+                          className={`text-white ${
+                            language !== "en"
+                              ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
+                              : "bg-gray-700 hover:bg-gray-800"
+                          } transition duration-100`}
+                        >
+                          English
+                        </Button>
+                        <Button
+                          variant={language === "et" ? "bordered" : "solid"}
+                          onClick={() => setLanguage("et")}
+                          className={`text-white ${
+                            language !== "et"
+                              ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
+                              : "bg-gray-700 hover:bg-gray-800"
+                          } transition duration-100`}
+                        >
+                          Eesti
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-1 items-center">
-                      <Icons.text size={20} color="white" />
-                      {t.lineHeight}
+                    <div className="flex flex-col gap-3">
+                      {/* <FocusModeToggle /> */}
+                      <ZoomApiSwitchComponent />
+                      <FirebaseApiSwitchComponent />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="bordered"
-                        onClick={() => handleLineHeightChange(false)}
-                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                      >
-                        -
-                      </Button>
-                      <Input
-                        type="number"
-                        isDisabled
-                        variant="bordered"
-                        value={lineHeight.toFixed(1)}
-                        onChange={(e) =>
-                          setLineHeight(
-                            Math.max(1, Math.min(parseFloat(e.target.value), 3))
-                          )
-                        }
-                      />
-                      <Button
-                        variant="bordered"
-                        onClick={() => handleLineHeightChange(true)}
-                        className="text-white bg-gray-700 hover:bg-gray-800 transition duration-100"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <div className="flex gap-1 items-center">
-                      <Icons.wholeWord size={20} color="white" />
-                      {t.subtitleMode}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={!subtitleMode ? "bordered" : "solid"}
-                        onClick={() => handleModeChange("text")}
-                        className={`text-white ${
-                          subtitleMode
-                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
-                            : "bg-gray-700 hover:bg-gray-800"
-                        } transition duration-100`}
-                      >
-                        {t.textMode}
-                      </Button>
-                      <Button
-                        variant={subtitleMode ? "bordered" : "solid"}
-                        onClick={() => handleModeChange("subtitle")}
-                        className={`text-white ${
-                          !subtitleMode
-                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
-                            : "bg-gray-700 hover:bg-gray-800"
-                        } transition duration-100`}
-                      >
-                        {t.subtitleModeButton}
-                      </Button>
-                    </div>
-                    <div className="flex gap-1 items-center">
-                      <Icons.languages size={20} color="white" />
-                      {t.languageLabel}
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Button
-                        variant={language === "en" ? "bordered" : "solid"}
-                        onClick={() => setLanguage("en")}
-                        className={`text-white ${
-                          language !== "en"
-                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
-                            : "bg-gray-700 hover:bg-gray-800"
-                        } transition duration-100`}
-                      >
-                        English
-                      </Button>
-                      <Button
-                        variant={language === "et" ? "bordered" : "solid"}
-                        onClick={() => setLanguage("et")}
-                        className={`text-white ${
-                          language !== "et"
-                            ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
-                            : "bg-gray-700 hover:bg-gray-800"
-                        } transition duration-100`}
-                      >
-                        Eesti
-                      </Button>
-                    </div>
-                    <ZoomApiSwitchComponent />
-                    <FirebaseApiSwitchComponent />
                   </div>
                 </ModalBody>
               </ScrollShadow>
