@@ -23,6 +23,7 @@ export const SettingsProvider = ({ children }) => {
   const [captionName, setCaptionName] = useState("");
   const [captionURL, setCaptionURL] = useState("");
   const [language, setLanguage] = useState("et"); // Add language state
+  // const [focusMode, setFocusMode] = useState(false); // Add focusMode state
 
   return (
     <SettingsContext.Provider
@@ -47,6 +48,8 @@ export const SettingsProvider = ({ children }) => {
         setCaptionURL,
         language,
         setLanguage,
+        // focusMode,
+        // setFocusMode,
       }}
     >
       {children}
