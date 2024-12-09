@@ -3,7 +3,8 @@ import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
 
 export default function TextSizeSlider() {
-  const { setTextSize, language } = useSettings() as {
+  const { textSize, setTextSize, language } = useSettings() as {
+    textSize: number;
     setTextSize: (value: number) => void;
     language: "en" | "et";
   };
@@ -34,7 +35,7 @@ export default function TextSizeSlider() {
         showSteps={true}
         maxValue={8}
         minValue={1}
-        defaultValue={3}
+        defaultValue={textSize}
         onChange={(value) =>
           setTextSize(Array.isArray(value) ? value[0] : value)
         }

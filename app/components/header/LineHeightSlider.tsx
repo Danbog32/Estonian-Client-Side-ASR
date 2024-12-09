@@ -3,7 +3,8 @@ import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
 
 export default function TextSizeSlider() {
-  const { setLineHeight, language } = useSettings() as {
+  const { lineHeight, setLineHeight, language } = useSettings() as {
+    lineHeight: number;
     setLineHeight: (value: number) => void;
     language: "en" | "et";
   };
@@ -32,12 +33,12 @@ export default function TextSizeSlider() {
         onChange={(value) =>
           setLineHeight(Array.isArray(value) ? value[0] : value)
         }
-        step={0.1}
+        step={0.2}
         color="primary"
         showSteps={true}
         maxValue={3}
         minValue={1}
-        defaultValue={1.5}
+        defaultValue={lineHeight}
         className="max-w-md"
       />
     </div>
