@@ -37,7 +37,7 @@ export default function Asr() {
 
   // Set the initial loading message based on the language
   useEffect(() => {
-    setLoadingMessage(t.downloadingModel);
+    setLoadingMessage(translations[language].downloadingModel);
   }, [language]);
 
   useEffect(() => {
