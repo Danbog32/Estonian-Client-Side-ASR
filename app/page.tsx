@@ -16,6 +16,20 @@ export default function Home() {
         strategy="beforeInteractive"
       ></Script>
 
+      {/* Initialize Google Analytics */}
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-NGRE916DGT"
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){window.dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-NGRE916DGT');
+        `}
+      </Script>
+
       {/* Initialize Firebase */}
       <Script id="firebase-init" strategy="afterInteractive">
         {`
