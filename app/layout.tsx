@@ -23,6 +23,8 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning={true} className={inter.className}>
         <SettingsProvider>{children}</SettingsProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
