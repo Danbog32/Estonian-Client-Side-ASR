@@ -5,7 +5,14 @@ const hint = document.getElementById("hint");
 const soundClips = document.getElementById("sound-clips");
 const toggleBtn = document.getElementById("toggleBtn");
 
-let textArea = document.getElementById("results");
+// let textArea = document.getElementById("results");
+
+// Instead of writing to a textarea, update the inner text of the transcript span
+const transcriptElement = document.getElementById("transcriptText");
+
+if (!transcriptElement) {
+  console.error("Transcript element not found!");
+}
 
 // Add these at the top of app-asr.js
 let subtitleMode = false; // Default to false for text mode
@@ -128,8 +135,14 @@ let resultList = [];
 clearBtn.onclick = function () {
   resultList = [];
   prevSubList = [];
-  textArea.value = "";
-  textArea.scrollTop = textArea.scrollHeight; // auto scroll
+  lastResult = "";
+  lastSentCaption = ""; // Reset the last sent caption
+  transcriptElement.innerHTML = "";
+  // Reset the recognizer's stream so it starts fresh
+  if (recognizer_stream) {
+    recognizer.reset(recognizer_stream);
+    recognizer_stream = null;
+  }
 };
 
 function getDisplayResult() {
@@ -202,10 +215,30 @@ function getNewCaptionText(currentResult) {
   }
 }
 
+let flushTimer = null;
+
+function resetFlushTimer() {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+  }
+  flushTimer = setTimeout(() => {
+    // If there is any uncommitted text, push it as a new line.
+    if (lastResult.length > 0) {
+      updateResultList(lastResult);
+      lastResult = "";
+      // Immediately update the transcript element with the new multi‐line transcript.
+      const transcriptElement = document.getElementById("transcriptText");
+      if (transcriptElement) {
+        transcriptElement.innerText = getDisplayResult();
+      }
+    }
+  }, 5000); // 5000 ms = 5 seconds
+}
+
 Module = {};
 Module.onRuntimeInitialized = function () {
   console.log("inited!");
-  hint.innerText = "Model loaded! Please click start";
+  // hint.innerText = "Model loaded! Please click start";
 
   startBtn.disabled = false;
 
@@ -282,6 +315,8 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
+        // Every time new text arrives, reset the flush timer.
+        resetFlushTimer();
       }
 
       if (isEndpoint) {
@@ -289,25 +324,31 @@ if (navigator.mediaDevices.getUserMedia) {
           updateResultList(lastResult);
           prevSubList.push(lastResult);
           lastResult = "";
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
         }
         recognizer.reset(recognizer_stream);
       }
 
-      const isScrolledToBottom =
-        textArea.scrollHeight - textArea.clientHeight <= textArea.scrollTop + 1;
+      // const isScrolledToBottom =
+      //   transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+      //   transcriptElement.scrollTop + 1;
 
-      if (subtitleMode) {
-        let combinedText = resultList.join(" ") + " " + lastResult;
-        let displayText = getLastNWords(combinedText, maxWords);
-
-        textArea.value = cleanText(displayText);
-      } else {
-        textArea.value = getDisplayResult();
+      if (transcriptElement) {
+        if (subtitleMode) {
+          let combinedText = resultList.join(" ") + " " + lastResult;
+          let displayText = getLastNWords(combinedText, maxWords);
+          transcriptElement.innerText = cleanText(displayText);
+        } else {
+          transcriptElement.innerText = getDisplayResult();
+        }
       }
 
-      if (isScrolledToBottom) {
-        textArea.scrollTop = textArea.scrollHeight;
-      }
+      // if (isScrolledToBottom) {
+      //   transcriptElement.scrollTop = transcriptElement.scrollHeight;
+      // }
 
       // Function to get the last N words from a text
       function getLastNWords(text, n) {
@@ -337,6 +378,10 @@ if (navigator.mediaDevices.getUserMedia) {
 
       // Function to update the resultList to maintain a rolling window of 24 words
       function updateResultList(newResult) {
+        if (!subtitleMode) {
+          resultList.push(newResult);
+          return;
+        }
         // Combine existing resultList and newResult into a single string
         let combinedText = resultList.join(" ") + " " + newResult;
         let sentences = combinedText.trim().split(".").filter(Boolean); // Split by sentences
@@ -402,7 +447,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
     stopBtn.onclick = function () {
       console.log("recorder stopped");
-      hint.innerText = 'Press "start" to continue';
+      // hint.innerText = 'Press "start" to continue';
 
       recorder.disconnect(audioCtx.destination);
       mediaStream.disconnect(recorder);
