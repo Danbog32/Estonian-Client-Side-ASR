@@ -1,24 +1,20 @@
-// components/Asr.tsx
-
 "use client";
 
-import { useEffect, useState } from "react";
-import { Progress } from "@nextui-org/react";
+import { useState, useEffect } from "react";
+import Script from "next/script";
 import { useSettings } from "./SettingsContext";
 import CaptionDisplay from "./CaptionDisplay";
 import GreetingLoading from "./GreetingLoading";
 
 export default function Asr() {
+  const { textSize, lineHeight } = useSettings();
+  const { language } = useSettings() as { language: "en" | "et" };
   const [loading, setLoading] = useState(true);
-  const { textSize, lineHeight, showSoundClips, language } = useSettings() as {
-    textSize: number;
-    lineHeight: number;
-    showSoundClips: boolean;
-    language: "en" | "et";
-  };
   const [loadingMessage, setLoadingMessage] = useState("");
+  // Create a timestamp to append to the script URLs to bust cache issues
+  const timestamp = new Date().getTime();
 
-  // Translations for different languages
+  // Translation strings for different languages
   const translations = {
     en: {
       heading: "Estonian Automatic Speech Recognition",
@@ -32,62 +28,20 @@ export default function Asr() {
     },
   };
 
-  // Get the appropriate translations based on the selected language
-  const t = translations[language] || translations.en;
-
-  // Set the initial loading message based on the language
+  // Set the loading message based on the selected language
   useEffect(() => {
-    setLoadingMessage(translations[language].downloadingModel);
+    setLoadingMessage(
+      translations[language]?.downloadingModel ||
+        translations.en.downloadingModel
+    );
   }, [language]);
 
-  useEffect(() => {
-    const loadScripts = async () => {
-      const timestamp = new Date().getTime();
-      const scripts = [
-        {
-          src: `onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`,
-          check: "startBtn",
-        },
-        { src: `onnx/sherpa-onnx-asr.js?v=${timestamp}`, check: "Stream" },
-        { src: `onnx/app-asr.js` },
-      ];
-
-      const totalScripts = scripts.length;
-      let loadedScripts = 0;
-
-      const updateProgress = () => {
-        loadedScripts += 1;
-        if (loadedScripts === totalScripts) {
-          setLoadingMessage("Laen mudelit, palun oodake...");
-        }
-      };
-
-      for (const { src, check } of scripts) {
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.onload = () => {
-          if (check && typeof (window as any)[check] !== "undefined") {
-            console.warn(
-              `${check} already defined, skipping initialization of ${src}`
-            );
-          }
-          updateProgress();
-        };
-        document.body.appendChild(script);
-      }
-    };
-
-    loadScripts();
-  }, []);
-
+  // Listen for the modelInitialized event, which will be fired from app-asr.js
   useEffect(() => {
     const handleModelInitialized = () => {
       setLoading(false);
     };
-
     window.addEventListener("modelInitialized", handleModelInitialized);
-
     return () => {
       window.removeEventListener("modelInitialized", handleModelInitialized);
     };
@@ -95,6 +49,22 @@ export default function Asr() {
 
   return (
     <div className="bg-gray-800 flex flex-col items-center h-[calc(100vh-108px)]">
+      <Script
+        src={`onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
+      />
+      <Script
+        src={`onnx/sherpa-onnx-asr.js?v=${timestamp}`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("sherpa-onnx-asr loaded")}
+      />
+      <Script
+        src={`onnx/app-asr.js?v=${timestamp}`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("app-asr loaded")}
+      />
+
       {loading ? (
         <GreetingLoading loadingMessage={loadingMessage} />
       ) : (
