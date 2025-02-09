@@ -11,8 +11,6 @@ export default function Asr() {
   const { language } = useSettings() as { language: "en" | "et" };
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
-  // Create a timestamp to append to the script URLs to bust cache issues
-  const timestamp = new Date().getTime();
 
   // Translation strings for different languages
   const translations = {
@@ -50,22 +48,22 @@ export default function Asr() {
   return (
     <div className="bg-gray-800 flex flex-col items-center h-[calc(100vh-108px)]">
       <Script
-        src={`onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`}
+        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
       />
       <Script
-        src={`onnx/sherpa-onnx-asr.js?v=${timestamp}`}
+        src={`onnx/sherpa-onnx-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("sherpa-onnx-asr loaded")}
       />
       <Script
-        src={`onnx/app-asr.js?v=${timestamp}`}
+        src={`onnx/app-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("app-asr loaded")}
       />
 
-      {loading ? (
+      {false ? (
         <GreetingLoading loadingMessage={loadingMessage} />
       ) : (
         <CaptionDisplay textSize={textSize} lineHeight={lineHeight} />

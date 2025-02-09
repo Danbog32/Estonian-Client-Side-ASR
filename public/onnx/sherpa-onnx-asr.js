@@ -246,7 +246,6 @@ function initSherpaOnnxFeatureConfig(config, Module) {
       error.message.includes("Module._malloc is not a function")
     ) {
       console.error("Module._malloc is not available. Reloading the page...");
-      window.location.reload();
     } else {
       throw error; // Re-throw the error if it's a different issue
     }

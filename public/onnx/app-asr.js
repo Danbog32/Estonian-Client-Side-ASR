@@ -235,19 +235,29 @@ function resetFlushTimer() {
   }, 5000); // 5000 ms = 5 seconds
 }
 
-Module = {};
+// Instead of: Module = {};
+window.Module = window.Module || {};
+// Attach our onRuntimeInitialized callback to the (possibly already defined) Module.
 Module.onRuntimeInitialized = function () {
-  console.log("inited!");
-  // hint.innerText = "Model loaded! Please click start";
-
-  startBtn.disabled = false;
-
-  recognizer = createOnlineRecognizer(Module);
-  console.log("recognizer is created!", recognizer);
-
-  // Emit event to indicate model initialization
-  const event = new Event("modelInitialized");
-  window.dispatchEvent(event);
+  // Wait until all required methods are available
+  function waitForExports() {
+    if (
+      typeof Module._malloc !== "function" ||
+      typeof Module.lengthBytesUTF8 !== "function"
+    ) {
+      console.warn("Waiting for Module exports...");
+      setTimeout(waitForExports, 500);
+    } else {
+      console.log("Module exports are ready!");
+      startBtn.disabled = false;
+      recognizer = createOnlineRecognizer(Module);
+      console.log("Recognizer is created!", recognizer);
+      // Signal that the model is ready
+      const event = new Event("modelInitialized");
+      window.dispatchEvent(event);
+    }
+  }
+  waitForExports();
 };
 
 let audioCtx;
