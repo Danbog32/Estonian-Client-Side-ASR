@@ -11,11 +11,11 @@ const StartPrompt: React.FC<StartPromptProps> = () => {
   const translations = {
     en: {
       heading: "Ready to Talk?",
-      info: "When you're ready, press the start button and begin speaking.",
+      info: "When you're ready, press the start button and begin speaking",
     },
     et: {
       heading: "Valmis rääkima?",
-      info: "Kui olete valmis, vajutage käivitusnuppu ja alustage rääkimist.",
+      info: "Kui olete valmis, vajutage käivitusnuppu ja alustage rääkimist",
     },
   };
 
@@ -23,9 +23,13 @@ const StartPrompt: React.FC<StartPromptProps> = () => {
 
   return (
     <>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center justify-center p-8 rounded-lg shadow-lg bg-gray-700 animate-fadeIn">
-          <h1 className="text-4xl font-bold text-white mb-4 animate-slideInDown">
+      <div className="absolute inset-0 flex flex-col items-center justify-center animate-fadeIn">
+        <div
+          className="flex flex-col items-center justify-center gap-1 sm:gap-4 
+               bg-gray-700 max-w-[85%] sm:max-w-[70%] md:max-w-[50%] lg:max-w-[40%] 
+               rounded-lg shadow-lg py-4 px-6 sm:py-8 animate-fadeIn"
+        >
+          <h1 className="text-2xl sm:text-4xl font-bold text-white mb-4 animate-slideInDown text-center">
             {t.heading}
           </h1>
           <p className="text-lg text-gray-300 mb-6 text-center animate-fadeIn">
@@ -50,6 +54,7 @@ const StartPrompt: React.FC<StartPromptProps> = () => {
           </div>
         </div>
       </div>
+
       <style jsx>{`
         @keyframes fadeIn {
           from {
