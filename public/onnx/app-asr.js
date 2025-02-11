@@ -5,6 +5,9 @@ const hint = document.getElementById("hint");
 const soundClips = document.getElementById("sound-clips");
 const toggleBtn = document.getElementById("toggleBtn");
 
+if (!startBtn) {
+  console.error("Start button not found!");
+}
 // let textArea = document.getElementById("results");
 
 // Instead of writing to a textarea, update the inner text of the transcript span
@@ -235,6 +238,61 @@ function resetFlushTimer() {
   }, 5000); // 5000 ms = 5 seconds
 }
 
+// Create the "Scroll to Bottom" button with an arrow icon
+const scrollToBottomBtn = document.createElement("button");
+scrollToBottomBtn.id = "scrollToBottomBtn";
+// Use an inline SVG for a down arrow icon
+scrollToBottomBtn.innerHTML = `
+  <svg width="24" height="24" viewBox="0 0 24 24" 
+       fill="none" stroke="currentColor" stroke-width="2" 
+       stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+`;
+
+// Minimalistic, dark-themed styles for the button
+Object.assign(scrollToBottomBtn.style, {
+  position: "fixed",
+  bottom: "10%",
+  left: "50%",
+  transform: "translateX(-50%)",
+  backgroundColor: "rgba(0, 0, 0, 0.6)", // dark semi-transparent background
+  border: "none",
+  borderRadius: "50%",
+  padding: "8px",
+  cursor: "pointer",
+  zIndex: "1000",
+  display: "none", // hidden initially
+  outline: "none",
+  transition: "opacity 0.3s",
+  color: "#fff", // ensure the arrow (stroke) appears white
+  zIndex: "1",
+});
+
+// When clicked, scroll the transcript element to the bottom and hide the button
+scrollToBottomBtn.addEventListener("click", () => {
+  transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  scrollToBottomBtn.style.display = "none";
+});
+
+// Append the button to the document body (or another container if desired)
+document.body.appendChild(scrollToBottomBtn);
+
+// Attach a scroll listener to the transcript element to toggle the button's visibility
+transcriptElement.addEventListener("scroll", () => {
+  const distanceFromBottom =
+    transcriptElement.scrollHeight -
+    transcriptElement.clientHeight -
+    transcriptElement.scrollTop;
+
+  // Show the button if the user is more than 150px away from the bottom
+  if (distanceFromBottom > 150) {
+    scrollToBottomBtn.style.display = "block";
+  } else {
+    scrollToBottomBtn.style.display = "none";
+  }
+});
+
 // Instead of: Module = {};
 window.Module = window.Module || {};
 // Attach our onRuntimeInitialized callback to the (possibly already defined) Module.
@@ -342,9 +400,9 @@ if (navigator.mediaDevices.getUserMedia) {
         recognizer.reset(recognizer_stream);
       }
 
-      // const isScrolledToBottom =
-      //   transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-      //   transcriptElement.scrollTop + 1;
+      const isScrolledToBottom =
+        transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+        transcriptElement.scrollTop + 1;
 
       if (transcriptElement) {
         if (subtitleMode) {
@@ -356,9 +414,9 @@ if (navigator.mediaDevices.getUserMedia) {
         }
       }
 
-      // if (isScrolledToBottom) {
-      //   transcriptElement.scrollTop = transcriptElement.scrollHeight;
-      // }
+      if (isScrolledToBottom) {
+        transcriptElement.scrollTop = transcriptElement.scrollHeight;
+      }
 
       // Function to get the last N words from a text
       function getLastNWords(text, n) {
@@ -505,10 +563,10 @@ if (navigator.mediaDevices.getUserMedia) {
       // Add cursor pointer to clipLabel
       clipLabel.style.cursor = "pointer";
 
-      clipContainer.appendChild(audio);
-      clipContainer.appendChild(clipLabel);
-      clipContainer.appendChild(deleteButton);
-      soundClips.appendChild(clipContainer);
+      // clipContainer.appendChild(audio);
+      // clipContainer.appendChild(clipLabel);
+      // clipContainer.appendChild(deleteButton);
+      // soundClips.appendChild(clipContainer);
 
       audio.controls = true;
       let samples = flatten(leftchannel);

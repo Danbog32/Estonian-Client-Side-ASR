@@ -63,11 +63,13 @@ export default function Asr() {
         onLoad={() => console.log("app-asr loaded")}
       />
 
-      {false ? (
-        <GreetingLoading loadingMessage={loadingMessage} />
-      ) : (
-        <CaptionDisplay textSize={textSize} lineHeight={lineHeight} />
-      )}
+      {loading && <GreetingLoading loadingMessage={loadingMessage} />}
+
+      <CaptionDisplay
+        textSize={textSize}
+        lineHeight={lineHeight}
+        loading={loading}
+      />
     </div>
   );
 }

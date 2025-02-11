@@ -1,34 +1,28 @@
-"use client";
-
-import React, { useState, useEffect, useRef } from "react";
-import { useSettings } from "./SettingsContext";
+import React from "react";
 import { ScrollShadow } from "@nextui-org/react";
+import StartSpeakingPrompt from "./StartSpeakingPrompt";
 
 interface CaptionDisplayProps {
   textSize: number;
   lineHeight: number;
+  loading: boolean;
 }
 
 const CaptionDisplay: React.FC<CaptionDisplayProps> = ({
   textSize,
   lineHeight,
+  loading,
 }) => {
-  const [transcript, setTranscript] = useState("");
-  const { language } = useSettings();
-
   return (
     <div className="flex flex-col h-full max-w-full justify-end">
-      {/* This is the scrollable container */}
-      {/* <div className="h-full flex flex-col justify-end mx-4"> */}
       {/* Transcript content */}
       <ScrollShadow
         id="transcriptText"
         className="text-white scroll-smooth overflow-auto p-4"
         style={{ fontSize: `${textSize}rem`, lineHeight: lineHeight }}
       >
-        {transcript || "Waiting for transcript..."}
+        {!loading && <StartSpeakingPrompt />}
       </ScrollShadow>
-      {/* </div> */}
     </div>
   );
 };
