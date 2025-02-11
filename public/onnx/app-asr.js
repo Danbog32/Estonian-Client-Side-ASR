@@ -402,7 +402,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
       const isScrolledToBottom =
         transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-        transcriptElement.scrollTop + 1;
+        transcriptElement.scrollTop + 10;
 
       if (transcriptElement) {
         if (subtitleMode) {
