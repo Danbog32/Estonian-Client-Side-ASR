@@ -64,7 +64,7 @@ export default function Settings() {
 
   return (
     <div className="dark">
-      <div className="flex flex-wrap gap-0 sm:gap-3">
+      <div className="flex flex-wrap gap-0 sm:gap-3 z-[2]">
         <Button
           variant="bordered"
           onClick={handleOpen}

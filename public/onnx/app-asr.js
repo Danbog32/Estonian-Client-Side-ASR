@@ -5,7 +5,17 @@ const hint = document.getElementById("hint");
 const soundClips = document.getElementById("sound-clips");
 const toggleBtn = document.getElementById("toggleBtn");
 
-let textArea = document.getElementById("results");
+if (!startBtn) {
+  console.error("Start button not found!");
+}
+// let textArea = document.getElementById("results");
+
+// Instead of writing to a textarea, update the inner text of the transcript span
+const transcriptElement = document.getElementById("transcriptText");
+
+if (!transcriptElement) {
+  console.error("Transcript element not found!");
+}
 
 // Add these at the top of app-asr.js
 let subtitleMode = false; // Default to false for text mode
@@ -128,8 +138,14 @@ let resultList = [];
 clearBtn.onclick = function () {
   resultList = [];
   prevSubList = [];
-  textArea.value = "";
-  textArea.scrollTop = textArea.scrollHeight; // auto scroll
+  lastResult = "";
+  lastSentCaption = ""; // Reset the last sent caption
+  transcriptElement.innerHTML = "";
+  // Reset the recognizer's stream so it starts fresh
+  if (recognizer_stream) {
+    recognizer.reset(recognizer_stream);
+    recognizer_stream = null;
+  }
 };
 
 function getDisplayResult() {
@@ -202,19 +218,104 @@ function getNewCaptionText(currentResult) {
   }
 }
 
-Module = {};
+let flushTimer = null;
+
+function resetFlushTimer() {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+  }
+  flushTimer = setTimeout(() => {
+    // If there is any uncommitted text, push it as a new line.
+    if (lastResult.length > 0) {
+      updateResultList(lastResult);
+      lastResult = "";
+      // Immediately update the transcript element with the new multi‐line transcript.
+      const transcriptElement = document.getElementById("transcriptText");
+      if (transcriptElement) {
+        transcriptElement.innerText = getDisplayResult();
+      }
+    }
+  }, 5000); // 5000 ms = 5 seconds
+}
+
+// Create the "Scroll to Bottom" button with an arrow icon
+const scrollToBottomBtn = document.createElement("button");
+scrollToBottomBtn.id = "scrollToBottomBtn";
+// Use an inline SVG for a down arrow icon
+scrollToBottomBtn.innerHTML = `
+  <svg width="24" height="24" viewBox="0 0 24 24" 
+       fill="none" stroke="currentColor" stroke-width="2" 
+       stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+`;
+
+// Minimalistic, dark-themed styles for the button
+Object.assign(scrollToBottomBtn.style, {
+  position: "fixed",
+  bottom: "10%",
+  left: "50%",
+  transform: "translateX(-50%)",
+  backgroundColor: "rgba(0, 0, 0, 0.6)", // dark semi-transparent background
+  border: "none",
+  borderRadius: "50%",
+  padding: "8px",
+  cursor: "pointer",
+  zIndex: "1000",
+  display: "none", // hidden initially
+  outline: "none",
+  transition: "opacity 0.3s",
+  color: "#fff", // ensure the arrow (stroke) appears white
+  zIndex: "1",
+});
+
+// When clicked, scroll the transcript element to the bottom and hide the button
+scrollToBottomBtn.addEventListener("click", () => {
+  transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  scrollToBottomBtn.style.display = "none";
+});
+
+// Append the button to the document body (or another container if desired)
+document.body.appendChild(scrollToBottomBtn);
+
+// Attach a scroll listener to the transcript element to toggle the button's visibility
+transcriptElement.addEventListener("scroll", () => {
+  const distanceFromBottom =
+    transcriptElement.scrollHeight -
+    transcriptElement.clientHeight -
+    transcriptElement.scrollTop;
+
+  // Show the button if the user is more than 150px away from the bottom
+  if (distanceFromBottom > 150) {
+    scrollToBottomBtn.style.display = "block";
+  } else {
+    scrollToBottomBtn.style.display = "none";
+  }
+});
+
+// Instead of: Module = {};
+window.Module = window.Module || {};
+// Attach our onRuntimeInitialized callback to the (possibly already defined) Module.
 Module.onRuntimeInitialized = function () {
-  console.log("inited!");
-  hint.innerText = "Model loaded! Please click start";
-
-  startBtn.disabled = false;
-
-  recognizer = createOnlineRecognizer(Module);
-  console.log("recognizer is created!", recognizer);
-
-  // Emit event to indicate model initialization
-  const event = new Event("modelInitialized");
-  window.dispatchEvent(event);
+  // Wait until all required methods are available
+  function waitForExports() {
+    if (
+      typeof Module._malloc !== "function" ||
+      typeof Module.lengthBytesUTF8 !== "function"
+    ) {
+      console.warn("Waiting for Module exports...");
+      setTimeout(waitForExports, 500);
+    } else {
+      console.log("Module exports are ready!");
+      startBtn.disabled = false;
+      recognizer = createOnlineRecognizer(Module);
+      console.log("Recognizer is created!", recognizer);
+      // Signal that the model is ready
+      const event = new Event("modelInitialized");
+      window.dispatchEvent(event);
+    }
+  }
+  waitForExports();
 };
 
 let audioCtx;
@@ -282,6 +383,8 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
+        // Every time new text arrives, reset the flush timer.
+        resetFlushTimer();
       }
 
       if (isEndpoint) {
@@ -289,24 +392,30 @@ if (navigator.mediaDevices.getUserMedia) {
           updateResultList(lastResult);
           prevSubList.push(lastResult);
           lastResult = "";
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
         }
         recognizer.reset(recognizer_stream);
       }
 
       const isScrolledToBottom =
-        textArea.scrollHeight - textArea.clientHeight <= textArea.scrollTop + 1;
+        transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+        transcriptElement.scrollTop + 1;
 
-      if (subtitleMode) {
-        let combinedText = resultList.join(" ") + " " + lastResult;
-        let displayText = getLastNWords(combinedText, maxWords);
-
-        textArea.value = cleanText(displayText);
-      } else {
-        textArea.value = getDisplayResult();
+      if (transcriptElement) {
+        if (subtitleMode) {
+          let combinedText = resultList.join(" ") + " " + lastResult;
+          let displayText = getLastNWords(combinedText, maxWords);
+          transcriptElement.innerText = cleanText(displayText);
+        } else {
+          transcriptElement.innerText = getDisplayResult();
+        }
       }
 
       if (isScrolledToBottom) {
-        textArea.scrollTop = textArea.scrollHeight;
+        transcriptElement.scrollTop = transcriptElement.scrollHeight;
       }
 
       // Function to get the last N words from a text
@@ -337,6 +446,10 @@ if (navigator.mediaDevices.getUserMedia) {
 
       // Function to update the resultList to maintain a rolling window of 24 words
       function updateResultList(newResult) {
+        if (!subtitleMode) {
+          resultList.push(newResult);
+          return;
+        }
         // Combine existing resultList and newResult into a single string
         let combinedText = resultList.join(" ") + " " + newResult;
         let sentences = combinedText.trim().split(".").filter(Boolean); // Split by sentences
@@ -402,7 +515,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
     stopBtn.onclick = function () {
       console.log("recorder stopped");
-      hint.innerText = 'Press "start" to continue';
+      // hint.innerText = 'Press "start" to continue';
 
       recorder.disconnect(audioCtx.destination);
       mediaStream.disconnect(recorder);
@@ -450,10 +563,10 @@ if (navigator.mediaDevices.getUserMedia) {
       // Add cursor pointer to clipLabel
       clipLabel.style.cursor = "pointer";
 
-      clipContainer.appendChild(audio);
-      clipContainer.appendChild(clipLabel);
-      clipContainer.appendChild(deleteButton);
-      soundClips.appendChild(clipContainer);
+      // clipContainer.appendChild(audio);
+      // clipContainer.appendChild(clipLabel);
+      // clipContainer.appendChild(deleteButton);
+      // soundClips.appendChild(clipContainer);
 
       audio.controls = true;
       let samples = flatten(leftchannel);

@@ -1,24 +1,18 @@
-// components/Asr.tsx
-
 "use client";
 
-import { useEffect, useState } from "react";
-import { Progress } from "@nextui-org/react";
+import { useState, useEffect } from "react";
+import Script from "next/script";
 import { useSettings } from "./SettingsContext";
-import TextAreaDisplay from "./TextAreaDisplay";
-import AudioSection from "./AudioSection";
+import CaptionDisplay from "./CaptionDisplay";
+import GreetingLoading from "./GreetingLoading";
 
 export default function Asr() {
+  const { textSize, lineHeight } = useSettings();
+  const { language } = useSettings() as { language: "en" | "et" };
   const [loading, setLoading] = useState(true);
-  const { textSize, lineHeight, showSoundClips, language } = useSettings() as {
-    textSize: number;
-    lineHeight: number;
-    showSoundClips: boolean;
-    language: "en" | "et";
-  };
   const [loadingMessage, setLoadingMessage] = useState("");
 
-  // Translations for different languages
+  // Translation strings for different languages
   const translations = {
     en: {
       heading: "Estonian Automatic Speech Recognition",
@@ -32,100 +26,50 @@ export default function Asr() {
     },
   };
 
-  // Get the appropriate translations based on the selected language
-  const t = translations[language] || translations.en;
-
-  // Set the initial loading message based on the language
+  // Set the loading message based on the selected language
   useEffect(() => {
-    setLoadingMessage(translations[language].downloadingModel);
+    setLoadingMessage(
+      translations[language]?.downloadingModel ||
+        translations.en.downloadingModel
+    );
   }, [language]);
 
-  useEffect(() => {
-    const loadScripts = async () => {
-      const timestamp = new Date().getTime();
-      const scripts = [
-        {
-          src: `onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`,
-          check: "startBtn",
-        },
-        { src: `onnx/sherpa-onnx-asr.js?v=${timestamp}`, check: "Stream" },
-        { src: `onnx/app-asr.js` },
-      ];
-
-      const totalScripts = scripts.length;
-      let loadedScripts = 0;
-
-      const updateProgress = () => {
-        loadedScripts += 1;
-        if (loadedScripts === totalScripts) {
-          setLoadingMessage("Laen mudelit, palun oodake...");
-        }
-      };
-
-      for (const { src, check } of scripts) {
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.onload = () => {
-          if (check && typeof (window as any)[check] !== "undefined") {
-            console.warn(
-              `${check} already defined, skipping initialization of ${src}`
-            );
-          }
-          updateProgress();
-        };
-        document.body.appendChild(script);
-      }
-    };
-
-    loadScripts();
-  }, []);
-
+  // Listen for the modelInitialized event, which will be fired from app-asr.js
   useEffect(() => {
     const handleModelInitialized = () => {
       setLoading(false);
     };
-
     window.addEventListener("modelInitialized", handleModelInitialized);
-
     return () => {
       window.removeEventListener("modelInitialized", handleModelInitialized);
     };
   }, []);
 
   return (
-    <div className="bg-gray-800 flex flex-col items-center">
-      <div className="flex flex-col items-center min-h-[calc(100vh-140px)] w-full max-w-[1200px] text-white">
-        <div className="w-full p-8 relative h-full">
-          <h1 className="sm:text-3xl md:text-2xl text-xl font-bold mb-6 text-center">
-            {t.heading}
-          </h1>
+    <div className="bg-gray-800 flex flex-col items-center h-[calc(100vh-108px)]">
+      <Script
+        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
+      />
+      <Script
+        src={`onnx/sherpa-onnx-asr.js`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("sherpa-onnx-asr loaded")}
+      />
+      <Script
+        src={`onnx/app-asr.js`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("app-asr loaded")}
+      />
 
-          {loading && (
-            <>
-              <span id="hint" className="mb-4 text-lg text-gray-300">
-                {loadingMessage}
-              </span>
-              <Progress
-                size="sm"
-                isIndeterminate
-                aria-label="Loading..."
-                className="full-w"
-              />
-            </>
-          )}
+      {loading && <GreetingLoading loadingMessage={loadingMessage} />}
 
-          <TextAreaDisplay textSize={textSize} lineHeight={lineHeight} />
-          {/* Display the caption link if available */}
-          <div
-            id="captionLink"
-            className="mt-4 text-center text-lg text-blue-500"
-          >
-            {/* The caption link will be injected here */}
-          </div>
-          <AudioSection showSoundClips={showSoundClips} />
-        </div>
-      </div>
+      <CaptionDisplay
+        textSize={textSize}
+        lineHeight={lineHeight}
+        loading={loading}
+      />
     </div>
   );
 }

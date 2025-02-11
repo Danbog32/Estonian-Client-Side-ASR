@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../components/SettingsContext";
 
 interface AudioSectionProps {
   showSoundClips: boolean;

@@ -11,8 +11,8 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider = ({ children }) => {
-  const [textSize, setTextSize] = useState(3);
-  const [lineHeight, setLineHeight] = useState(1.5);
+  const [textSize, setTextSize] = useState(4);
+  const [lineHeight, setLineHeight] = useState(1.4);
   const [showSoundClips, setShowSoundClips] = useState(true);
   const [subtitleMode, setSubtitleMode] = useState(false);
 
