@@ -21,7 +21,7 @@ const GreetingLoading: React.FC<GreetingLoadingProps> = ({
     },
     et: {
       greeting: "Tere tulemast!",
-      info: "Pakume lihtsat kasutajaliidest otse teie brauseris elava otsekirjelduse kogemuse jaoks",
+      info: "Selle kasutajaliidese abil saab kasutada kõnetuvastust otse brauseris",
       loading: "Mudel laeb, palun oodake.",
     },
   };

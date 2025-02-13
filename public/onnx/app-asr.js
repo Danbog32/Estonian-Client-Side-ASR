@@ -218,25 +218,25 @@ function getNewCaptionText(currentResult) {
   }
 }
 
-let flushTimer = null;
+// let flushTimer = null;
 
-function resetFlushTimer() {
-  if (flushTimer) {
-    clearTimeout(flushTimer);
-  }
-  flushTimer = setTimeout(() => {
-    // If there is any uncommitted text, push it as a new line.
-    if (lastResult.length > 0) {
-      updateResultList(lastResult);
-      lastResult = "";
-      // Immediately update the transcript element with the new multi‐line transcript.
-      const transcriptElement = document.getElementById("transcriptText");
-      if (transcriptElement) {
-        transcriptElement.innerText = getDisplayResult();
-      }
-    }
-  }, 5000); // 5000 ms = 5 seconds
-}
+// function resetFlushTimer() {
+//   if (flushTimer) {
+//     clearTimeout(flushTimer);
+//   }
+//   flushTimer = setTimeout(() => {
+//     // If there is any uncommitted text, push it as a new line.
+//     if (lastResult.length > 0) {
+//       updateResultList(lastResult);
+//       lastResult = "";
+//       // Immediately update the transcript element with the new multi‐line transcript.
+//       const transcriptElement = document.getElementById("transcriptText");
+//       if (transcriptElement) {
+//         transcriptElement.innerText = getDisplayResult();
+//       }
+//     }
+//   }, 5000); // 5000 ms = 5 seconds
+// }
 
 // Create the "Scroll to Bottom" button with an arrow icon
 const scrollToBottomBtn = document.createElement("button");
@@ -384,7 +384,7 @@ if (navigator.mediaDevices.getUserMedia) {
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
         // Every time new text arrives, reset the flush timer.
-        resetFlushTimer();
+        // resetFlushTimer();
       }
 
       if (isEndpoint) {
@@ -392,10 +392,10 @@ if (navigator.mediaDevices.getUserMedia) {
           updateResultList(lastResult);
           prevSubList.push(lastResult);
           lastResult = "";
-          if (flushTimer) {
-            clearTimeout(flushTimer);
-            flushTimer = null;
-          }
+          // if (flushTimer) {
+          //   clearTimeout(flushTimer);
+          //   flushTimer = null;
+          // }
         }
         recognizer.reset(recognizer_stream);
       }
