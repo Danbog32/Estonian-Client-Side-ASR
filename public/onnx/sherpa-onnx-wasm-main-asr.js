@@ -38,8 +38,8 @@ Module.expectedDataFileDownloads++;
           .substring(0, location.pathname.toString().lastIndexOf("/")) + "/"
       );
     }
-    var PACKAGE_NAME = `./onnx/sherpa-onnx-wasm-main-asr.data`;
-    var REMOTE_PACKAGE_BASE = `./onnx/sherpa-onnx-wasm-main-asr.data`;
+    var PACKAGE_NAME = `onnx/sherpa-onnx-wasm-main-asr.data`;
+    var REMOTE_PACKAGE_BASE = `onnx/sherpa-onnx-wasm-main-asr.data`;
     if (
       typeof Module["locateFilePackage"] === "function" &&
       !Module["locateFile"]

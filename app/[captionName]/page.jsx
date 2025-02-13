@@ -34,7 +34,7 @@ export default function LiveCaptionsPage() {
         <div className="w-full flex items-center justify-center mb-6">
           {/* Logo */}
           <Image
-            src="./images/TalTech_logo.png" // Replace with your logo path
+            src="/images/TalTech_logo.png" // Replace with your logo path
             alt="Logo"
             width={100}
             height={70}
