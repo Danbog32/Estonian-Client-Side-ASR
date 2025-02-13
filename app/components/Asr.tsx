@@ -48,17 +48,17 @@ export default function Asr() {
   return (
     <div className="bg-gray-800 flex flex-col items-center h-[calc(100vh-108px)]">
       <Script
-        src={`./onnx/sherpa-onnx-wasm-main-asr.js`}
+        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
       />
       <Script
-        src={`./onnx/sherpa-onnx-asr.js`}
+        src={`onnx/sherpa-onnx-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("sherpa-onnx-asr loaded")}
       />
       <Script
-        src={`./onnx/app-asr.js`}
+        src={`onnx/app-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("app-asr loaded")}
       />
