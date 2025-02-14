@@ -14,7 +14,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = ({
   loading,
 }) => {
   return (
-    <div className="flex flex-col h-full max-w-full justify-end">
+    <div className="flex flex-col h-full w-full justify-end">
       {/* Transcript content */}
       <ScrollShadow
         id="transcriptText"

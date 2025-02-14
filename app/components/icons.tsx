@@ -10,6 +10,7 @@ import {
   TextIcon,
   WholeWord,
   Languages,
+  Info,
 } from "lucide-react";
 
 export const Icons = {
@@ -24,4 +25,5 @@ export const Icons = {
   text: TextIcon,
   wholeWord: WholeWord,
   languages: Languages,
+  info: Info,
 };
