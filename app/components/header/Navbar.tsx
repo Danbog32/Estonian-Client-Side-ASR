@@ -8,8 +8,8 @@ import {
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-  Button,
-} from "@nextui-org/react";
+  Link,
+} from "@heroui/react";
 import { TalTechLogo } from "./TalTechLogo.jsx";
 import { Icons } from "../icons";
 import Settings from "./Settings";
@@ -55,7 +55,13 @@ export default function App() {
     >
       <NavbarContent justify="start">
         <NavbarBrand>
-          <TalTechLogo />
+          <Link
+            href="https://taltech.ee/en/laboratory-language-technology"
+            target="_blank"
+            className="cursor-pointer"
+          >
+            <TalTechLogo />
+          </Link>
         </NavbarBrand>
       </NavbarContent>
 

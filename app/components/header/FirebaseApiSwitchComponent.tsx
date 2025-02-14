@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Switch, cn } from "@nextui-org/react";
+import { Switch, cn } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { useSettings } from "../SettingsContext";
 import QRCode from "react-qr-code";

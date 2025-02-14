@@ -2,7 +2,7 @@
 
 "use client";
 
-import { Switch, cn, Input, Button } from "@nextui-org/react";
+import { Switch, cn, Input, Button } from "@heroui/react";
 import { useState, useEffect } from "react";
 import { useSettings } from "../SettingsContext";
 

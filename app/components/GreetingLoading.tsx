@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Progress } from "@nextui-org/react";
+import { Progress } from "@heroui/react";
 import { useSettings } from "./SettingsContext";
 
 interface GreetingLoadingProps {

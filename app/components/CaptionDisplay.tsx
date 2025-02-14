@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollShadow } from "@nextui-org/react";
+import { ScrollShadow } from "@heroui/react";
 import StartSpeakingPrompt from "./StartSpeakingPrompt";
 
 interface CaptionDisplayProps {
@@ -14,7 +14,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = ({
   loading,
 }) => {
   return (
-    <div className="flex flex-col h-full max-w-full justify-end">
+    <div className="flex flex-col h-full w-full justify-end">
       {/* Transcript content */}
       <ScrollShadow
         id="transcriptText"

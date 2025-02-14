@@ -1,13 +1,21 @@
+// components/Footer.tsx
 import React from "react";
+import InfoDrawer from "./InfoDrawer";
 
 const Footer = () => {
   return (
-    <footer className="py-3 bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center">
-          <p className="text-center text-sm text-gray-500">
-            &copy; 2025 TalTech. All rights reserved.
-          </p>
+    <footer className="h-[44px] bg-gray-900">
+      <div className="max-w-[1024px] mx-auto h-full px-2 sm:px-6 lg:px-8">
+        <div className="flex items-center h-full">
+          <div className="flex-1 ">
+            <InfoDrawer />
+          </div>
+          <div className="flex-1 text-center">
+            <p className="text-sm text-gray-500 text-nowrap max-[300px]:text-wrap">
+              &copy; 2025 TalTech. All rights reserved.
+            </p>
+          </div>
+          <div className="flex-grow-0 sm:flex-1" />
         </div>
       </div>
     </footer>

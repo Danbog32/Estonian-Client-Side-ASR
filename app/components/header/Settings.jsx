@@ -13,7 +13,7 @@ import {
   useDisclosure,
   Input,
   ScrollShadow,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
 // import FocusModeToggle from "./FocusModeToggle";
