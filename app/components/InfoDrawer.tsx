@@ -56,8 +56,8 @@ export default function InfoDrawer() {
         size="sm"
         className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
       >
-        <Icons.info size={18} color="white" />
-        <span className="hidden sm:inline">{t.button}</span>
+        <Icons.info size={18} className="text-gray-300" />
+        <span className="hidden sm:inline text-gray-300">{t.button}</span>
       </Button>
 
       <Drawer placement="right" isOpen={isOpen} onOpenChange={onOpenChange}>
