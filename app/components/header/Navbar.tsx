@@ -9,7 +9,7 @@ import {
   NavbarContent,
   NavbarItem,
   Link,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { TalTechLogo } from "./TalTechLogo.jsx";
 import { Icons } from "../icons";
 import Settings from "./Settings";

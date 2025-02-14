@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
   PopoverContent,
   Button,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { Icons } from "./icons"; // Adjust the path as necessary
 import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
 
