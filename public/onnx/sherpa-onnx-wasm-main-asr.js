@@ -38,8 +38,8 @@ Module.expectedDataFileDownloads++;
           .substring(0, location.pathname.toString().lastIndexOf("/")) + "/"
       );
     }
-    var PACKAGE_NAME = `onnx/sherpa-onnx-wasm-main-asr.data`;
-    var REMOTE_PACKAGE_BASE = `onnx/sherpa-onnx-wasm-main-asr.data`;
+    var PACKAGE_NAME = `onnx/sherpa-onnx-wasm-main-asr.v1.data`;
+    var REMOTE_PACKAGE_BASE = `onnx/sherpa-onnx-wasm-main-asr.v1.data`;
     if (
       typeof Module["locateFilePackage"] === "function" &&
       !Module["locateFile"]
@@ -202,11 +202,11 @@ Module.expectedDataFileDownloads++;
           DataRequest.prototype.requests[files[i].filename].onload();
         }
         Module["removeRunDependency"](
-          "datafile_../../bin/sherpa-onnx-wasm-main-asr.data"
+          "datafile_../../bin/sherpa-onnx-wasm-main-asr.v1.data"
         );
       }
       Module["addRunDependency"](
-        "datafile_../../bin/sherpa-onnx-wasm-main-asr.data"
+        "datafile_../../bin/sherpa-onnx-wasm-main-asr.v1.data"
       );
       if (!Module.preloadResults) Module.preloadResults = {};
       Module.preloadResults[PACKAGE_NAME] = {
@@ -500,7 +500,7 @@ var isDataURI = (filename) => filename.startsWith(dataURIPrefix);
 var isFileURI = (filename) => filename.startsWith("file://");
 
 function findWasmBinary() {
-  var f = "sherpa-onnx-wasm-main-asr.wasm";
+  var f = "sherpa-onnx-wasm-main-asr.v1.wasm";
   if (!isDataURI(f)) {
     return locateFile(f);
   }
