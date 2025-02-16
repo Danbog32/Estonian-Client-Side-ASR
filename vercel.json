@@ -1,7 +1,7 @@
 {
   "headers": [
     {
-      "source": "/onnx/(.*\\.(data|wasm))",
+      "source": "/onnx/:fileName(.+\\.(data|wasm))",
       "headers": [
         {
           "key": "Cache-Control",
