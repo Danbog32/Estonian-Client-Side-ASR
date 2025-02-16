@@ -52,7 +52,7 @@ export default function InfoDrawer() {
   return (
     <>
       <Button
-        onClick={onOpenChange}
+        onPress={onOpenChange}
         size="sm"
         className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
       >
