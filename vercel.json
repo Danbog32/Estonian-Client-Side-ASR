@@ -1,7 +1,16 @@
 {
   "headers": [
     {
-      "source": "/onnx/:fileName(.+\\.(data|wasm))",
+      "source": "/onnx/:fileName*.data",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/onnx/:fileName*.wasm",
       "headers": [
         {
           "key": "Cache-Control",
