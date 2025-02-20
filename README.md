@@ -1,8 +1,33 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Eesti ASR
 
-## Getting Started
+**Eesti ASR** is a web application that listens to audio input and converts speech to text directly in your browser. The speech recognition engine runs locally, ensuring that your speech is processed on your device and never sent to a remote server. This focus on local processing guarantees complete privacy.
 
-First, run the development server:
+## Features
+
+- **Local Speech Recognition:** Processes audio directly in the browser without sending data to any server.
+- **Multi-Device Support:** Optionally, one computer can capture and recognize speech while sending the recognized text to other devices connected to the same session (see Settings).
+- **Chrome Compatibility:** The application is designed to work exclusively in Google Chrome for optimal performance.
+- **Optimized Microphone Use:** For best results, it is recommended to use a microphone placed close to your mouth. Note that due to the small size of the browser-based model, performance may decrease in very noisy, spontaneous, or multi-speaker environments.
+
+## App Info
+
+This web application listens to audio input and converts speech to text. The speech recognition engine runs directly in the browser, ensuring that the user's speech is not transmitted to a server. This means that your privacy is maintained while still benefiting from powerful speech-to-text conversion.
+
+## Live Demo
+
+Try the application live at [eestiasr.vercel.app](https://eestiasr.vercel.app).
+
+## Running Locally
+
+To run the application locally on your machine, follow these steps:
+
+## Running the Application Locally
+
+### 1. Clone the Repository
+
+````sh
+git clone https://github.com/your-repo/eestiasr.git
+cd eestiasr
 
 ```bash
 npm run dev
@@ -12,7 +37,7 @@ yarn dev
 pnpm dev
 # or
 bun dev
-```
+````
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -20,17 +45,9 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```sh
+Author:
+Bohdan Podziubanchuk
+Tallinn University of Technology, Language Technology Laboratory
+https://taltech.ee/en/laboratory-language-technology
+```
