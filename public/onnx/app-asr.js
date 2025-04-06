@@ -146,6 +146,46 @@ clearBtn.onclick = function () {
     recognizer.reset(recognizer_stream);
     recognizer_stream = null;
   }
+
+  // Show visual indicator that text was cleared
+  const clearIndicator = document.createElement("div");
+  clearIndicator.textContent = "Tekst kustutatud";
+  clearIndicator.className = "clear-indicator";
+  clearIndicator.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: medium;
+    animation: fadeOut 1.5s forwards;
+    z-index: 1000;
+  `;
+
+  // Add animation style
+  if (!document.getElementById("clear-animation")) {
+    const style = document.createElement("style");
+    style.id = "clear-animation";
+    style.textContent = `
+      @keyframes fadeOut {
+        0% { opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(clearIndicator);
+
+  // Remove the indicator after animation completes
+  setTimeout(() => {
+    document.body.removeChild(clearIndicator);
+  }, 1600);
 };
 
 function getDisplayResult() {

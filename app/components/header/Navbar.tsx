@@ -9,6 +9,7 @@ import {
   NavbarContent,
   NavbarItem,
   Link,
+  Button,
 } from "@heroui/react";
 import { TalTechLogo } from "./TalTechLogo.jsx";
 import { Icons } from "../icons";
@@ -70,9 +71,9 @@ export default function App() {
           <button
             id="startBtn"
             disabled
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
+            className="bg-primary hover:bg-primary/90 active:bg-primary/80 text-white font-medium px-4 py-2 rounded-xl shadow-sm transition-all duration-150 disabled:opacity-50 flex items-center gap-2"
           >
-            <Icons.play size={20} color="white" />
+            <Icons.mic size={20} />
             {t.start}
           </button>
         </NavbarItem>
@@ -80,18 +81,18 @@ export default function App() {
           <button
             id="stopBtn"
             disabled
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 disabled:opacity-50 flex items-center gap-1"
+            className="bg-danger hover:bg-danger/90 active:bg-danger/80 text-white font-medium px-4 py-2 rounded-xl shadow-sm transition-all duration-150 disabled:opacity-50 flex items-center gap-2"
           >
-            <Icons.stop size={21} color="white" />
+            <Icons.stop size={20} />
             {t.stop}
           </button>
         </NavbarItem>
         <NavbarItem>
           <button
             id="clearBtn"
-            className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1"
+            className="bg-default-500 hover:bg-default-600 active:bg-default-700 text-white font-medium px-4 py-2 rounded-xl shadow-sm transition-all duration-150 disabled:opacity-50 flex items-center gap-2"
           >
-            <Icons.delete size={21} color="white" />
+            <Icons.trash size={18} />
             {t.clear}
           </button>
         </NavbarItem>
@@ -107,7 +108,7 @@ export default function App() {
                 : "bg-blue-600 hover:bg-blue-700"
             } text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1 ml-2`}
           >
-            <Icons.play size={20} color="white" />
+            <Icons.mic size={20} color="white" />
             {isRecording ? t.stop : t.start}
           </button>
         </NavbarItem>
