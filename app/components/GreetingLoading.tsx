@@ -30,28 +30,34 @@ const GreetingLoading: React.FC<GreetingLoadingProps> = ({
   const currentLoadingMessage = loadingMessage || t.loading;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center animate-fadeIn">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-sm animate-fadeIn z-[40]">
       <div
-        className="flex flex-col items-center justify-center text-balance gap-1 sm:gap-4 bg-gray-700 
-        max-w-[85%] lg:max-w-[40%] md:max-w-[50%] sm:max-w-[70%] rounded-lg shadow-lg py-4 px-2 sm:py-8"
+        className="flex flex-col items-center justify-center text-balance gap-3 sm:gap-6 
+        bg-gray-800/90 border border-gray-700/50 max-w-[90%] lg:max-w-[38rem] md:max-w-[32rem] sm:max-w-[28rem]
+        rounded-xl shadow-2xl p-6 sm:p-8 transition-all"
       >
-        <h1 className="text-2xl font-bold text-white mb-4 text-center sm:text-4xl animate-slideInDown">
+        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-primary bg-clip-text text-transparent mb-2 animate-slideInDown">
           {t.greeting}
         </h1>
 
-        <p className="text-medium sm:text-lg text-gray-300 mb-2 text-center max-w-[80%] animate-fadeIn">
+        <div className="w-20 h-1 bg-primary/30 rounded-full mb-4 animate-pulse"></div>
+
+        <p className="text-medium sm:text-lg text-gray-300 mb-4 text-center max-w-[90%] leading-relaxed animate-fadeIn">
           {t.info}
         </p>
-        <div className="max-w-[80%]">
-          <p className="text-medium sm:text-lg text-gray-300 mb-4 text-center animate-fadeIn">
-            {currentLoadingMessage}
-          </p>
+
+        <div className="w-full px-4 sm:px-8">
+          <div className="flex items-center gap-2 mb-3 animate-fadeIn">
+            <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+            <p className="text-medium text-gray-400">{currentLoadingMessage}</p>
+          </div>
 
           <Progress
             size="md"
             isIndeterminate
             aria-label="Loading..."
-            className="w-full max-w-md"
+            className="w-full animate-pulse"
+            color="primary"
           />
         </div>
       </div>
