@@ -108,7 +108,7 @@ export default function App() {
                 : "bg-primary hover:bg-primary/90"
             } text-white font-medium px-4 py-2 rounded-xl transition-all duration-150 flex items-center gap-2`}
           >
-            {isRecording ? <Icons.stop size={18} /> : <Icons.mic size={18} />}
+            <Icons.mic size={18} />
             {isRecording ? t.stop : t.start}
           </button>
         </NavbarItem>
