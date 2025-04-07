@@ -76,18 +76,22 @@ export default function InfoDrawer() {
                     {paragraph}
                   </p>
                 ))}
-                <p className="text-md mb-4">
-                  {t.authorLabel}{" "}
-                  <Link
-                    isExternal
-                    href="https://taltech.ee/en/laboratory-language-technology"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-blue-400 hover:text-blue-300"
-                  >
-                    {t.authorText}
-                  </Link>
-                </p>
+                <div className="mt-8 bg-gray-800/60 rounded-lg p-4 border border-gray-700/50">
+                  <p className="text-sm flex flex-col gap-1.5">
+                    <span className="font-semibold text-gray-300">
+                      {t.authorLabel}
+                    </span>
+                    <Link
+                      isExternal
+                      href="https://taltech.ee/en/laboratory-language-technology"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                    >
+                      {t.authorText}
+                    </Link>
+                  </p>
+                </div>
               </DrawerBody>
               <DrawerFooter>
                 <Button color="danger" variant="light" onPress={onClose}>

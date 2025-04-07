@@ -11,8 +11,8 @@ const Footer = () => {
             <InfoDrawer />
           </div>
           <div className="flex-1 text-center">
-            <p className="text-sm text-gray-500 text-nowrap max-[300px]:text-wrap">
-              &copy; 2025 TalTech. All rights reserved.
+            <p className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} TalTech. All rights reserved.
             </p>
           </div>
           <div className="flex-grow-0 sm:flex-1" />

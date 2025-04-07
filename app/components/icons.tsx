@@ -10,8 +10,8 @@ import {
   Languages,
   Info,
   TrashIcon,
-  // add microphone icon from lucide-react
   Mic,
+  CloudIcon,
 } from "lucide-react";
 
 export const Icons = {
@@ -27,4 +27,5 @@ export const Icons = {
   info: Info,
   trash: TrashIcon,
   mic: Mic,
+  cloud: CloudIcon,
 };

@@ -11,7 +11,6 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  Input,
   ScrollShadow,
 } from "@heroui/react";
 import { Icons } from "../icons";
@@ -49,6 +48,7 @@ export default function Settings() {
       subtitleModeButton: "Subtitle Mode",
       languageLabel: "Language:",
       close: "Close",
+      advancedSettings: "Advanced Settings:",
     },
     et: {
       settings: "Seaded",
@@ -57,6 +57,7 @@ export default function Settings() {
       subtitleModeButton: "Subtiitrite režiim",
       languageLabel: "Keel:",
       close: "Sulge",
+      advancedSettings: "Täiendavad seaded:",
     },
   };
 
@@ -100,7 +101,7 @@ export default function Settings() {
                             subtitleMode
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                               : "bg-gray-700 hover:bg-gray-800"
-                          } transition duration-100`}
+                          } transition duration-100 flex-1`}
                         >
                           {t.textMode}
                         </Button>
@@ -111,7 +112,7 @@ export default function Settings() {
                             !subtitleMode
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                               : "bg-gray-700 hover:bg-gray-800"
-                          } transition duration-100`}
+                          } transition duration-100 flex-1`}
                         >
                           {t.subtitleModeButton}
                         </Button>
@@ -130,7 +131,7 @@ export default function Settings() {
                             language !== "en"
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                               : "bg-gray-700 hover:bg-gray-800"
-                          } transition duration-100`}
+                          } transition duration-100 flex-1`}
                         >
                           English
                         </Button>
@@ -141,13 +142,17 @@ export default function Settings() {
                             language !== "et"
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
                               : "bg-gray-700 hover:bg-gray-800"
-                          } transition duration-100`}
+                          } transition duration-100 flex-1`}
                         >
                           Eesti
                         </Button>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3">
+                      <div className="flex gap-1 items-center">
+                        <Icons.cloud size={20} color="white" />
+                        {t.advancedSettings}
+                      </div>
                       {/* <FocusModeToggle /> */}
                       <ZoomApiSwitchComponent />
                       <FirebaseApiSwitchComponent />
