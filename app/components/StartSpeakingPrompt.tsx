@@ -63,7 +63,7 @@ const StartPrompt: React.FC<StartPromptProps> = () => {
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
                 stroke="currentColor"
-                className="w-5 h-5 text-blue-400"
+                className="w-5 h-5 text-blue-400 min-w-10"
               >
                 <path
                   strokeLinecap="round"
