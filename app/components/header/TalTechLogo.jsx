@@ -5,6 +5,7 @@ export const TalTechLogo = () => (
     alt="TalTech Logo"
     width={100}
     height={70}
+    priority
     // style={{ width: "100px", height: "70px" }}
   />
 );
