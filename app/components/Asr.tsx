@@ -48,11 +48,6 @@ export default function Asr() {
   return (
     <div className="bg-gray-800 flex flex-col items-center h-[calc(100vh-108px)]">
       <Script
-        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
-        strategy="afterInteractive"
-        onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
-      />
-      <Script
         src={`onnx/sherpa-onnx-asr.js`}
         strategy="afterInteractive"
         onLoad={() => console.log("sherpa-onnx-asr loaded")}
@@ -62,6 +57,11 @@ export default function Asr() {
         strategy="afterInteractive"
         onLoad={() => console.log("app-asr loaded")}
       />
+      <Script
+        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
+        strategy="afterInteractive"
+        onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
+      />
 
       {loading && <GreetingLoading loadingMessage={loadingMessage} />}
 
@@ -70,6 +70,9 @@ export default function Asr() {
         lineHeight={lineHeight}
         loading={loading}
       />
+
+      {/* Hidden elements that app-asr.js expects but doesn't exist in React app */}
+      <div id="sound-clips" style={{ display: "none" }}></div>
     </div>
   );
 }

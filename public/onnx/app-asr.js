@@ -1,3 +1,7 @@
+// This file copies and modifies code
+// from https://mdn.github.io/web-dictaphone/scripts/app.js
+// and https://gist.github.com/meziantou/edb7217fddfbb70e899e
+
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
 const clearBtn = document.getElementById("clearBtn");
@@ -336,26 +340,24 @@ transcriptElement.addEventListener("scroll", () => {
 // Instead of: Module = {};
 window.Module = window.Module || {};
 // Attach our onRuntimeInitialized callback to the (possibly already defined) Module.
+
+// https://emscripten.org/docs/api_reference/module.html#Module.locateFile
+Module.locateFile = function (path, scriptDirectory = "") {
+  // In a Next.js environment, the script directory can be ambiguous.
+  // We need to explicitly point to the correct location in the public folder.
+  const newPath = "/onnx/" + path;
+  console.log(`Resolving model data path: ${newPath}`);
+  return newPath;
+};
+
 Module.onRuntimeInitialized = function () {
-  // Wait until all required methods are available
-  function waitForExports() {
-    if (
-      typeof Module._malloc !== "function" ||
-      typeof Module.lengthBytesUTF8 !== "function"
-    ) {
-      console.warn("Waiting for Module exports...");
-      setTimeout(waitForExports, 500);
-    } else {
-      console.log("Module exports are ready!");
-      startBtn.disabled = false;
-      recognizer = createOnlineRecognizer(Module);
-      console.log("Recognizer is created!", recognizer);
-      // Signal that the model is ready
-      const event = new Event("modelInitialized");
-      window.dispatchEvent(event);
-    }
-  }
-  waitForExports();
+  console.log("inited!");
+  startBtn.disabled = false;
+  recognizer = createOnlineRecognizer(Module);
+  console.log("recognizer is created!", recognizer);
+  // Signal that the model is ready for React component
+  const event = new Event("modelInitialized");
+  window.dispatchEvent(event);
 };
 
 let audioCtx;
@@ -420,6 +422,16 @@ if (navigator.mediaDevices.getUserMedia) {
 
       let isEndpoint = recognizer.isEndpoint(recognizer_stream);
       let result = recognizer.getResult(recognizer_stream).text;
+
+      // This block is required by the new model's architecture
+      if (recognizer.config.modelConfig.paraformer.encoder != "") {
+        let tailPaddings = new Float32Array(expectedSampleRate);
+        recognizer_stream.acceptWaveform(expectedSampleRate, tailPaddings);
+        while (recognizer.isReady(recognizer_stream)) {
+          recognizer.decode(recognizer_stream);
+        }
+        result = recognizer.getResult(recognizer_stream).text;
+      }
 
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
