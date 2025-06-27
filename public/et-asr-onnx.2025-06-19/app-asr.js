@@ -2,17 +2,17 @@
 // from https://mdn.github.io/web-dictaphone/scripts/app.js
 // and https://gist.github.com/meziantou/edb7217fddfbb70e899e
 
-const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
-const clearBtn = document.getElementById('clearBtn');
-const soundClips = document.getElementById('sound-clips');
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const clearBtn = document.getElementById("clearBtn");
+const soundClips = document.getElementById("sound-clips");
 
-let textArea = document.getElementById('results');
+let textArea = document.getElementById("results");
 
-let lastResult = '';
+let lastResult = "";
 let resultList = [];
 
-clearBtn.onclick = function() {
+clearBtn.onclick = function () {
   resultList = [];
   textArea.value = getDisplayResult();
   textArea.scrollTop = textArea.scrollHeight; // auto scroll
@@ -20,18 +20,18 @@ clearBtn.onclick = function() {
 
 function getDisplayResult() {
   let i = 0;
-  let ans = '';
+  let ans = "";
   for (let s in resultList) {
-    if (resultList[s] == '') {
+    if (resultList[s] == "") {
       continue;
     }
 
-    ans += '' + i + ': ' + resultList[s] + '\n';
+    ans += "" + i + ": " + resultList[s] + "\n";
     i += 1;
   }
 
   if (lastResult.length > 0) {
-    ans += '' + i + ': ' + lastResult + '\n';
+    ans += "" + i + ": " + lastResult + "\n";
   }
   return ans;
 }
@@ -39,41 +39,41 @@ function getDisplayResult() {
 Module = {};
 
 // https://emscripten.org/docs/api_reference/module.html#Module.locateFile
-Module.locateFile = function(path, scriptDirectory = '') {
+Module.locateFile = function (path, scriptDirectory = "") {
   console.log(`path: ${path}, scriptDirectory: ${scriptDirectory}`);
   return scriptDirectory + path;
 };
 
 // https://emscripten.org/docs/api_reference/module.html#Module.locateFile
-Module.setStatus = function(status) {
+Module.setStatus = function (status) {
   console.log(`status ${status}`);
-  const statusElement = document.getElementById('status');
+  const statusElement = document.getElementById("status");
   if (status == "Running...") {
-    status = 'Model downloaded. Initializing recongizer...'
+    status = "Model downloaded. Initializing recongizer...";
   }
   statusElement.textContent = status;
-  if (status === '') {
-    statusElement.style.display = 'none';
+  if (status === "") {
+    statusElement.style.display = "none";
     // statusElement.parentNode.removeChild(statusElement);
 
-    document.querySelectorAll('.tab-content').forEach((tabContentElement) => {
-      tabContentElement.classList.remove('loading');
+    document.querySelectorAll(".tab-content").forEach((tabContentElement) => {
+      tabContentElement.classList.remove("loading");
     });
   } else {
-    statusElement.style.display = 'block';
-    document.querySelectorAll('.tab-content').forEach((tabContentElement) => {
-      tabContentElement.classList.add('loading');
+    statusElement.style.display = "block";
+    document.querySelectorAll(".tab-content").forEach((tabContentElement) => {
+      tabContentElement.classList.add("loading");
     });
   }
 };
 
-Module.onRuntimeInitialized = function() {
-  console.log('inited!');
+Module.onRuntimeInitialized = function () {
+  console.log("inited!");
 
   startBtn.disabled = false;
 
   recognizer = createOnlineRecognizer(Module);
-  console.log('recognizer is created!', recognizer);
+  console.log("recognizer is created!", recognizer);
 };
 
 let audioCtx;
@@ -81,7 +81,7 @@ let mediaStream;
 
 let expectedSampleRate = 16000;
 let recordSampleRate; // the sampleRate of the microphone
-let recorder = null;  // the microphone
+let recorder = null; // the microphone
 let leftchannel = []; // TODO: Use a single channel
 
 let recordingLength = 0; // number of samples so far
@@ -90,22 +90,22 @@ let recognizer = null;
 let recognizer_stream = null;
 
 if (navigator.mediaDevices.getUserMedia) {
-  console.log('getUserMedia supported.');
+  console.log("getUserMedia supported.");
 
   // see https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
-  const constraints = {audio : true};
+  const constraints = { audio: true };
 
-  let onSuccess = function(stream) {
+  let onSuccess = function (stream) {
     if (!audioCtx) {
-      audioCtx = new AudioContext({sampleRate : 16000});
+      audioCtx = new AudioContext({ sampleRate: 16000 });
     }
     console.log(audioCtx);
     recordSampleRate = audioCtx.sampleRate;
-    console.log('sample rate ' + recordSampleRate);
+    console.log("sample rate " + recordSampleRate);
 
     // creates an audio node from the microphone incoming stream
     mediaStream = audioCtx.createMediaStreamSource(stream);
-    console.log('media stream', mediaStream);
+    console.log("media stream", mediaStream);
 
     // https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/createScriptProcessor
     // bufferSize: the onaudioprocess event is called when the buffer is full
@@ -114,15 +114,21 @@ if (navigator.mediaDevices.getUserMedia) {
     var numberOfOutputChannels = 2;
     if (audioCtx.createScriptProcessor) {
       recorder = audioCtx.createScriptProcessor(
-          bufferSize, numberOfInputChannels, numberOfOutputChannels);
+        bufferSize,
+        numberOfInputChannels,
+        numberOfOutputChannels
+      );
     } else {
       recorder = audioCtx.createJavaScriptNode(
-          bufferSize, numberOfInputChannels, numberOfOutputChannels);
+        bufferSize,
+        numberOfInputChannels,
+        numberOfOutputChannels
+      );
     }
-    console.log('recorder', recorder);
+    console.log("recorder", recorder);
 
-    recorder.onaudioprocess = function(e) {
-      let samples = new Float32Array(e.inputBuffer.getChannelData(0))
+    recorder.onaudioprocess = function (e) {
+      let samples = new Float32Array(e.inputBuffer.getChannelData(0));
       samples = downsampleBuffer(samples, expectedSampleRate);
 
       if (recognizer_stream == null) {
@@ -138,7 +144,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
       let result = recognizer.getResult(recognizer_stream).text;
 
-      if (recognizer.config.modelConfig.paraformer.encoder != '') {
+      if (recognizer.config.modelConfig.paraformer.encoder != "") {
         let tailPaddings = new Float32Array(expectedSampleRate);
         recognizer_stream.acceptWaveform(expectedSampleRate, tailPaddings);
         while (recognizer.isReady(recognizer_stream)) {
@@ -154,7 +160,7 @@ if (navigator.mediaDevices.getUserMedia) {
       if (isEndpoint) {
         if (lastResult.length > 0) {
           resultList.push(lastResult);
-          lastResult = '';
+          lastResult = "";
         }
         recognizer.reset(recognizer_stream);
       }
@@ -165,10 +171,8 @@ if (navigator.mediaDevices.getUserMedia) {
       let buf = new Int16Array(samples.length);
       for (var i = 0; i < samples.length; ++i) {
         let s = samples[i];
-        if (s >= 1)
-          s = 1;
-        else if (s <= -1)
-          s = -1;
+        if (s >= 1) s = 1;
+        else if (s <= -1) s = -1;
 
         samples[i] = s;
         buf[i] = s * 32767;
@@ -178,25 +182,25 @@ if (navigator.mediaDevices.getUserMedia) {
       recordingLength += bufferSize;
     };
 
-    startBtn.onclick = function() {
+    startBtn.onclick = function () {
       mediaStream.connect(recorder);
       recorder.connect(audioCtx.destination);
 
-      console.log('recorder started');
+      console.log("recorder started");
 
       stopBtn.disabled = false;
       startBtn.disabled = true;
     };
 
-    stopBtn.onclick = function() {
-      console.log('recorder stopped');
+    stopBtn.onclick = function () {
+      console.log("recorder stopped");
 
       // stopBtn recording
       recorder.disconnect(audioCtx.destination);
       mediaStream.disconnect(recorder);
 
-      startBtn.style.background = '';
-      startBtn.style.color = '';
+      startBtn.style.background = "";
+      startBtn.style.color = "";
       // mediaRecorder.requestData();
 
       stopBtn.disabled = true;
@@ -204,14 +208,14 @@ if (navigator.mediaDevices.getUserMedia) {
 
       var clipName = new Date().toISOString();
 
-      const clipContainer = document.createElement('article');
-      const clipLabel = document.createElement('p');
-      const audio = document.createElement('audio');
-      const deleteButton = document.createElement('button');
-      clipContainer.classList.add('clip');
-      audio.setAttribute('controls', '');
-      deleteButton.textContent = 'Delete';
-      deleteButton.className = 'delete';
+      const clipContainer = document.createElement("article");
+      const clipLabel = document.createElement("p");
+      const audio = document.createElement("audio");
+      const deleteButton = document.createElement("button");
+      clipContainer.classList.add("clip");
+      audio.setAttribute("controls", "");
+      deleteButton.textContent = "Delete";
+      deleteButton.className = "delete";
 
       clipLabel.textContent = clipName;
 
@@ -228,16 +232,16 @@ if (navigator.mediaDevices.getUserMedia) {
       leftchannel = [];
       const audioURL = window.URL.createObjectURL(blob);
       audio.src = audioURL;
-      console.log('recorder stopped');
+      console.log("recorder stopped");
 
-      deleteButton.onclick = function(e) {
+      deleteButton.onclick = function (e) {
         let evtTgt = e.target;
         evtTgt.parentNode.parentNode.removeChild(evtTgt.parentNode);
       };
 
-      clipLabel.onclick = function() {
+      clipLabel.onclick = function () {
         const existingName = clipLabel.textContent;
-        const newClipName = prompt('Enter a new name for your sound clip?');
+        const newClipName = prompt("Enter a new name for your sound clip?");
         if (newClipName === null) {
           clipLabel.textContent = existingName;
         } else {
@@ -247,13 +251,14 @@ if (navigator.mediaDevices.getUserMedia) {
     };
   };
 
-  let onError = function(
-      err) { console.log('The following error occured: ' + err); };
+  let onError = function (err) {
+    console.log("The following error occured: " + err);
+  };
 
   navigator.mediaDevices.getUserMedia(constraints).then(onSuccess, onError);
 } else {
-  console.log('getUserMedia not supported on your browser!');
-  alert('getUserMedia not supported on your browser!');
+  console.log("getUserMedia not supported on your browser!");
+  alert("getUserMedia not supported on your browser!");
 }
 
 // this function is copied/modified from
@@ -281,22 +286,22 @@ function toWav(samples) {
 
   // http://soundfile.sapp.org/doc/WaveFormat/
   //                   F F I R
-  view.setUint32(0, 0x46464952, true);              // chunkID
+  view.setUint32(0, 0x46464952, true); // chunkID
   view.setUint32(4, 36 + samples.length * 2, true); // chunkSize
   //                   E V A W
   view.setUint32(8, 0x45564157, true); // format
-                                       //
+  //
   //                      t m f
-  view.setUint32(12, 0x20746d66, true);             // subchunk1ID
-  view.setUint32(16, 16, true);                     // subchunk1Size, 16 for PCM
-  view.setUint32(20, 1, true);                      // audioFormat, 1 for PCM
-  view.setUint16(22, 1, true);                      // numChannels: 1 channel
-  view.setUint32(24, expectedSampleRate, true);     // sampleRate
+  view.setUint32(12, 0x20746d66, true); // subchunk1ID
+  view.setUint32(16, 16, true); // subchunk1Size, 16 for PCM
+  view.setUint32(20, 1, true); // audioFormat, 1 for PCM
+  view.setUint16(22, 1, true); // numChannels: 1 channel
+  view.setUint32(24, expectedSampleRate, true); // sampleRate
   view.setUint32(28, expectedSampleRate * 2, true); // byteRate
-  view.setUint16(32, 2, true);                      // blockAlign
-  view.setUint16(34, 16, true);                     // bitsPerSample
-  view.setUint32(36, 0x61746164, true);             // Subchunk2ID
-  view.setUint32(40, samples.length * 2, true);     // subchunk2Size
+  view.setUint16(32, 2, true); // blockAlign
+  view.setUint16(34, 16, true); // bitsPerSample
+  view.setUint32(36, 0x61746164, true); // Subchunk2ID
+  view.setUint32(40, samples.length * 2, true); // subchunk2Size
 
   let offset = 44;
   for (let i = 0; i < samples.length; ++i) {
@@ -304,7 +309,7 @@ function toWav(samples) {
     offset += 2;
   }
 
-  return new Blob([ view ], {type : 'audio/wav'});
+  return new Blob([view], { type: "audio/wav" });
 }
 
 // this function is copied from
@@ -320,7 +325,8 @@ function downsampleBuffer(buffer, exportSampleRate) {
   var offsetBuffer = 0;
   while (offsetResult < result.length) {
     var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
-    var accum = 0, count = 0;
+    var accum = 0,
+      count = 0;
     for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
       accum += buffer[i];
       count++;
@@ -330,4 +336,4 @@ function downsampleBuffer(buffer, exportSampleRate) {
     offsetBuffer = nextOffsetBuffer;
   }
   return result;
-};
+}
