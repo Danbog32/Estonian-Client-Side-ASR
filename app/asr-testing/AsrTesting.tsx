@@ -45,7 +45,7 @@ export default function AsrTesting() {
       const timestamp = new Date().getTime();
       const scripts = [
         {
-          src: `onnx/sherpa-onnx-wasm-main-asr.js?v=${timestamp}`,
+          src: `onnx/sherpa-onnx-wasm-main-asr-v2.js?v=${timestamp}`,
           check: "startBtn",
         },
         { src: `onnx/sherpa-onnx-asr.js?v=${timestamp}`, check: "Stream" },

@@ -96,6 +96,97 @@ window.setFirebaseSettings = function (enabled, name) {
   streamingCaptionsUrl = name;
 };
 
+// Translation server settings (Option B: WebAssembly ASR + Server Translation)
+let translationEnabled = false; // Whether translation is enabled
+let translationServerUrl = "http://localhost:8080"; // Translation server URL
+let sessionId = `session-${Math.random().toString(36).substr(2, 9)}`; // Unique session ID
+
+// Function to set translation settings (called from Settings)
+window.setTranslationSettings = function (
+  enabled,
+  serverUrl = "http://localhost:8080"
+) {
+  translationEnabled = enabled;
+  translationServerUrl = serverUrl;
+  console.log(
+    `Translation ${enabled ? "enabled" : "disabled"} - Server: ${serverUrl}`
+  );
+};
+
+// Function to reset translation session (called from Settings or when stuck)
+window.resetTranslationSession = async function () {
+  if (!translationEnabled) {
+    console.log("Translation not enabled");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${translationServerUrl}/reset-session?session_id=${sessionId}`,
+      { method: "GET" }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`🔄 Translation session reset: ${data.message}`);
+      // Generate new session ID
+      sessionId = `session-${Math.random().toString(36).substr(2, 9)}`;
+      console.log(`🆕 New session ID: ${sessionId}`);
+    } else {
+      console.error("Failed to reset translation session");
+    }
+  } catch (error) {
+    console.error("Error resetting translation session:", error);
+  }
+};
+
+// Function to send text to translation server
+async function sendTextToTranslationServer(text) {
+  if (!translationEnabled || !text.trim()) {
+    return;
+  }
+
+  // Filter out very short fragments to avoid polluting translation context
+  const cleanedText = text.trim();
+  const wordCount = cleanedText.split(/\s+/).length;
+
+  // Only send if we have at least 3 words or a complete sentence-like structure
+  if (wordCount < 5 && !cleanedText.match(/[.!?]$/)) {
+    console.log(
+      `⏭️ Skipping short fragment for translation: "${cleanedText}" (${wordCount} words)`
+    );
+    return;
+  }
+
+  try {
+    const response = await fetch(`${translationServerUrl}/translate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: cleanedText,
+        session_id: sessionId,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(
+        `✅ Translation sent: "${cleanedText}" (${wordCount} words) → Server processed`
+      );
+      console.log(`🔄 Server response:`, data);
+    } else {
+      const errorData = await response.json();
+      console.error(
+        `❌ Translation failed: ${response.status} - ${errorData.error}`
+      );
+    }
+  } catch (error) {
+    console.error("🚫 Failed to send text to translation server:", error);
+  }
+}
+
 // security Firebase setup write Token
 // const writeToken = `token-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -139,12 +230,26 @@ let lastResult = "";
 let prevSubList = []; // List to store previous subtitle texts
 let resultList = [];
 
+// Maintain stable blocks to prevent unnecessary re-renders
+let completedBlocks = []; // Store completed blocks with stable IDs
+let currentBlockId = null; // ID of the current incomplete block
+
 clearBtn.onclick = function () {
   resultList = [];
   prevSubList = [];
   lastResult = "";
   lastSentCaption = ""; // Reset the last sent caption
+  window.transcriptBlocks = []; // Reset blocks
+  completedBlocks = []; // Reset completed blocks
+  currentBlockId = null; // Reset current block ID
   transcriptElement.innerHTML = "";
+
+  // Trigger React component update
+  const transcriptUpdateEvent = new CustomEvent("transcriptUpdate", {
+    detail: { blocks: [] },
+  });
+  window.dispatchEvent(transcriptUpdateEvent);
+
   // Reset the recognizer's stream so it starts fresh
   if (recognizer_stream) {
     recognizer.reset(recognizer_stream);
@@ -193,6 +298,69 @@ clearBtn.onclick = function () {
 };
 
 function getDisplayResult() {
+  let blocksChanged = false;
+
+  // Check if completed blocks need to be updated (when resultList changes)
+  if (completedBlocks.length !== resultList.length) {
+    // Add new completed blocks
+    for (let i = completedBlocks.length; i < resultList.length; i++) {
+      if (resultList[i] && resultList[i].trim() !== "") {
+        const newBlock = {
+          id: `block-${Date.now()}-${i}`,
+          text: cleanText(resultList[i]),
+          isComplete: true,
+          timestamp: new Date().toISOString(),
+        };
+        completedBlocks.push(newBlock);
+        blocksChanged = true;
+      }
+    }
+  }
+
+  // Handle current incomplete block
+  let currentBlock = null;
+  if (lastResult.length > 0) {
+    const currentText = cleanText(lastResult);
+
+    // Create new block ID if we don't have one or if text changed significantly
+    if (!currentBlockId) {
+      currentBlockId = `current-${Date.now()}`;
+      blocksChanged = true;
+    }
+
+    currentBlock = {
+      id: currentBlockId,
+      text: currentText,
+      isComplete: false,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Check if current block text actually changed
+    const existingCurrentBlock = window.transcriptBlocks?.find(
+      (block) => block.id === currentBlockId
+    );
+    if (!existingCurrentBlock || existingCurrentBlock.text !== currentText) {
+      blocksChanged = true;
+    }
+  } else if (currentBlockId) {
+    // Current block was removed
+    currentBlockId = null;
+    blocksChanged = true;
+  }
+
+  // Only update global blocks if something actually changed
+  if (blocksChanged || !window.transcriptBlocks) {
+    const blocks = [...completedBlocks];
+    if (currentBlock) {
+      blocks.push(currentBlock);
+    }
+    window.transcriptBlocks = blocks;
+  }
+
+  // Return both display text and whether blocks changed
+  const result = { blocksChanged };
+
+  // For backward compatibility, also return plain text
   let ans = "";
   for (let s in resultList) {
     if (resultList[s] == "") {
@@ -220,26 +388,37 @@ function getDisplayResult() {
     if (sendToZoomEnabled) {
       sendCaptionToZoom(captionText);
     }
+    if (translationEnabled) {
+      sendTextToTranslationServer(captionText);
+    }
     lastSentCaption = cleanAns.trim(); // Update lastSentCaption
   }
 
-  return cleanAns;
+  result.displayText = cleanAns;
+  return result;
 }
 
 function cleanText(text) {
-  // Remove extra spaces
-  text = text.replace(/\s\s+/g, " ");
+  // Split by lines to preserve line breaks
+  let lines = text.split("\n");
 
-  // Remove spaces before punctuation
-  text = text.replace(/\s*([,.!?;:])/g, "$1");
+  // Clean each line individually
+  lines = lines.map((line) => {
+    // Remove extra spaces within the line
+    line = line.replace(/\s\s+/g, " ");
 
-  // Remove leading punctuation
-  text = text.replace(/^[,.!?;:]+/, "");
+    // Remove spaces before punctuation
+    line = line.replace(/\s*([,.!?;:])/g, "$1");
 
-  // Trim leading and trailing spaces
-  text = text.trim();
+    // Remove leading punctuation
+    line = line.replace(/^[,.!?;:]+/, "");
 
-  return text;
+    // Trim leading and trailing spaces
+    return line.trim();
+  });
+
+  // Filter out empty lines and join with newlines
+  return lines.filter((line) => line.length > 0).join("\n");
 }
 
 function getNewCaptionText(currentResult) {
@@ -443,7 +622,13 @@ if (navigator.mediaDevices.getUserMedia) {
         if (lastResult.length > 0) {
           updateResultList(lastResult);
           prevSubList.push(lastResult);
+          // Send completed sentence to translation server
+          if (translationEnabled) {
+            sendTextToTranslationServer(lastResult);
+          }
           lastResult = "";
+          // Reset current block ID when sentence is complete
+          currentBlockId = null;
           // if (flushTimer) {
           //   clearTimeout(flushTimer);
           //   flushTimer = null;
@@ -462,7 +647,17 @@ if (navigator.mediaDevices.getUserMedia) {
           let displayText = getLastNWords(combinedText, maxWords);
           transcriptElement.innerText = cleanText(displayText);
         } else {
-          transcriptElement.innerText = getDisplayResult();
+          // Update display and only trigger React re-render if blocks changed
+          const result = getDisplayResult();
+          transcriptElement.innerText = result.displayText;
+
+          // Only trigger custom event for React component if blocks actually changed
+          if (result.blocksChanged) {
+            const transcriptUpdateEvent = new CustomEvent("transcriptUpdate", {
+              detail: { blocks: window.transcriptBlocks },
+            });
+            window.dispatchEvent(transcriptUpdateEvent);
+          }
         }
       }
 
