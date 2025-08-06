@@ -1,6 +1,6 @@
 "use client";
 
-import { Switch, cn, Input } from "@heroui/react";
+import { Switch, cn, Button } from "@heroui/react";
 import { useEffect, useState } from "react";
 import { useSettings } from "../SettingsContext";
 import { Icons } from "../icons";
@@ -12,35 +12,38 @@ declare global {
 }
 
 export default function TranslationSwitchComponent() {
-  const { language } = useSettings();
-  const [translationEnabled, setTranslationEnabled] = useState(false);
-  const [serverUrl, setServerUrl] = useState("http://localhost:8080");
-  const [connectionStatus, setConnectionStatus] = useState<
-    "unknown" | "connected" | "failed"
+  const { language, translationEnabled, setTranslationEnabled } = useSettings();
+  const [serviceStatus, setServiceStatus] = useState<
+    "unknown" | "ready" | "starting" | "failed"
   >("unknown");
+  const [isChecking, setIsChecking] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const translations = {
     en: {
       enableTranslation: "Enable Estonian → English Translation",
       translationDescription:
-        "Send ASR text to translation server for real-time translation.",
-      serverUrl: "Translation Server URL:",
-      testConnection: "Test Connection",
-      connectionOk: "✅ Connected",
-      connectionFailed: "❌ Connection Failed",
-      connectionTesting: "🔄 Testing...",
-      placeholder: "http://localhost:8080",
+        "Real-time translation using AI translation service.",
+      testConnection: "Test Service",
+      serviceReady: "✅ Service Ready",
+      serviceFailed: "❌ Service Unavailable",
+      serviceStarting: "🔄 Service Starting Up...",
+      serviceTesting: "🔄 Testing...",
+      startupNotice:
+        "The translation service takes about 1 minute to start up when first accessed.",
+      resetSession: "Reset Translation Context",
     },
     et: {
       enableTranslation: "Luba eesti → inglise tõlge",
-      translationDescription:
-        "Saada ASR tekst tõlkeserverisse reaalajas tõlkimiseks.",
-      serverUrl: "Tõlkeserveri URL:",
-      testConnection: "Testi ühendust",
-      connectionOk: "✅ Ühendatud",
-      connectionFailed: "❌ Ühendus ebaõnnestus",
-      connectionTesting: "🔄 Testimine...",
-      placeholder: "http://localhost:8080",
+      translationDescription: "Reaalajas tõlkimine AI tõlketeenuse abil.",
+      testConnection: "Testi teenust",
+      serviceReady: "✅ Teenus valmis",
+      serviceFailed: "❌ Teenus pole saadaval",
+      serviceStarting: "🔄 Teenus käivitub...",
+      serviceTesting: "🔄 Testimine...",
+      startupNotice:
+        "Tõlketeenus vajab esmasel kasutamisel umbes 1 minutit käivitumiseks.",
+      resetSession: "Lähtesta tõlke kontekst",
     },
   };
 
@@ -48,60 +51,98 @@ export default function TranslationSwitchComponent() {
     translations[language as keyof typeof translations] || translations.en;
 
   // Function to update translation settings in app-asr.js
-  const updateTranslationSettings = (enabled: boolean, url: string) => {
+  const updateTranslationSettings = (enabled: boolean) => {
     if (window.setTranslationSettings) {
-      window.setTranslationSettings(enabled, url);
+      window.setTranslationSettings(enabled, "/api/translate");
     }
   };
 
-  // Test connection to translation server
-  const testConnection = async () => {
-    setConnectionStatus("unknown");
+  // Test connection to translation service
+  const testService = async () => {
+    setIsChecking(true);
+    setServiceStatus("unknown");
+    setStatusMessage("");
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${serverUrl}/health`, {
+      const response = await fetch("/api/translate", {
         method: "GET",
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
+      const data = await response.json();
 
-      if (response.ok) {
-        setConnectionStatus("connected");
-        setTimeout(() => setConnectionStatus("unknown"), 3000);
+      if (response.ok && data.status === "healthy") {
+        setServiceStatus("ready");
+        setStatusMessage(data.message);
+      } else if (response.status === 503) {
+        setServiceStatus("starting");
+        setStatusMessage(data.message || "Service is starting up...");
       } else {
-        setConnectionStatus("failed");
-        setTimeout(() => setConnectionStatus("unknown"), 3000);
+        setServiceStatus("failed");
+        setStatusMessage(data.message || "Service unavailable");
       }
     } catch (error) {
-      setConnectionStatus("failed");
-      setTimeout(() => setConnectionStatus("unknown"), 3000);
+      console.error("Service test failed:", error);
+      setServiceStatus("failed");
+      setStatusMessage("Connection failed");
+    } finally {
+      setIsChecking(false);
     }
   };
 
-  // Effect to update settings when enabled state or URL changes
-  useEffect(() => {
-    updateTranslationSettings(translationEnabled, serverUrl);
-  }, [translationEnabled, serverUrl]);
+  // Reset translation session
+  const resetSession = async () => {
+    try {
+      const sessionId = `session-${Math.random().toString(36).substr(2, 9)}`;
+      await fetch(`/api/translate?session_id=${sessionId}`, {
+        method: "DELETE",
+      });
+      console.log("Translation session reset");
+    } catch (error) {
+      console.error("Failed to reset session:", error);
+    }
+  };
 
-  const getConnectionStatusText = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return t.connectionOk;
+  // Effect to update settings when enabled state changes
+  useEffect(() => {
+    updateTranslationSettings(translationEnabled);
+  }, [translationEnabled]);
+
+  // Test service on first load if translation is enabled
+  useEffect(() => {
+    if (translationEnabled && serviceStatus === "unknown") {
+      testService();
+    }
+  }, [translationEnabled]);
+
+  const getServiceStatusText = () => {
+    if (isChecking) {
+      return t.serviceTesting;
+    }
+
+    switch (serviceStatus) {
+      case "ready":
+        return t.serviceReady;
+      case "starting":
+        return t.serviceStarting;
       case "failed":
-        return t.connectionFailed;
+        return t.serviceFailed;
       case "unknown":
       default:
         return t.testConnection;
     }
   };
 
-  const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case "connected":
+  const getServiceStatusColor = () => {
+    switch (serviceStatus) {
+      case "ready":
         return "text-green-400";
+      case "starting":
+        return "text-yellow-400";
       case "failed":
         return "text-red-400";
       case "unknown":
@@ -145,39 +186,48 @@ export default function TranslationSwitchComponent() {
 
       {translationEnabled && (
         <div className="flex flex-col mt-1 gap-3 bg-gray-900 rounded-lg p-3">
-          <div className="flex flex-col gap-2">
-            <label className="text-white text-sm">{t.serverUrl}</label>
-            <Input
-              type="url"
-              value={serverUrl}
-              onChange={(e) => setServerUrl(e.target.value)}
-              placeholder={t.placeholder}
-              className="text-white"
-              classNames={{
-                input: "bg-gray-800 text-white",
-                inputWrapper:
-                  "bg-gray-800 border-gray-700 hover:border-gray-600",
-              }}
-            />
-          </div>
-
+          {/* Service Status */}
           <div className="flex items-center justify-between">
-            <button
-              onClick={testConnection}
-              disabled={
-                connectionStatus === "unknown" && serverUrl.trim() === ""
-              }
-              className={`text-sm ${getConnectionStatusColor()} transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+            <Button
+              size="sm"
+              onClick={testService}
+              disabled={isChecking}
+              className={`${getServiceStatusColor()} bg-transparent hover:bg-gray-800 transition-colors duration-200`}
             >
-              {getConnectionStatusText()}
-            </button>
+              {getServiceStatusText()}
+            </Button>
 
-            {translationEnabled && (
-              <div className="text-xs text-gray-400">
-                Session: {`session-${Math.random().toString(36).substr(2, 4)}`}
-              </div>
-            )}
+            <Button
+              size="sm"
+              onClick={resetSession}
+              variant="ghost"
+              className="text-gray-400 hover:text-white hover:bg-gray-800"
+            >
+              <Icons.loader size={14} />
+              <span className="hidden sm:inline ml-1">{t.resetSession}</span>
+            </Button>
           </div>
+
+          {/* Status message */}
+          {statusMessage && (
+            <div className="text-xs text-gray-400 bg-gray-800 rounded p-2">
+              {statusMessage}
+            </div>
+          )}
+
+          {/* Service starting notice */}
+          {serviceStatus === "starting" && (
+            <div className="text-xs text-yellow-400 bg-yellow-900/20 rounded p-2 border border-yellow-900/50">
+              ⚠️ {t.startupNotice}
+            </div>
+          )}
+
+          {/* Service ready notice */}
+          {serviceStatus === "ready" && (
+            <div className="text-xs text-green-400 bg-green-900/20 rounded p-2 border border-green-900/50">
+              ✅ Translation service is ready and responding quickly.
+            </div>
+          )}
         </div>
       )}
     </div>

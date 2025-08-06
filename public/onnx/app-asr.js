@@ -98,13 +98,15 @@ window.setFirebaseSettings = function (enabled, name) {
 
 // Translation server settings (Option B: WebAssembly ASR + Server Translation)
 let translationEnabled = false; // Whether translation is enabled
-let translationServerUrl = "http://localhost:8080"; // Translation server URL
+let translationServerUrl = "/api/translate"; // Translation server URL
 let sessionId = `session-${Math.random().toString(36).substr(2, 9)}`; // Unique session ID
+let sentTranslations = new Set(); // Track sent translations to prevent duplicates
+let lastSentText = ""; // Track last sent text to avoid duplicates
 
 // Function to set translation settings (called from Settings)
 window.setTranslationSettings = function (
   enabled,
-  serverUrl = "http://localhost:8080"
+  serverUrl = "/api/translate"
 ) {
   translationEnabled = enabled;
   translationServerUrl = serverUrl;
@@ -122,8 +124,8 @@ window.resetTranslationSession = async function () {
 
   try {
     const response = await fetch(
-      `${translationServerUrl}/reset-session?session_id=${sessionId}`,
-      { method: "GET" }
+      `${translationServerUrl}?session_id=${sessionId}`,
+      { method: "DELETE" }
     );
 
     if (response.ok) {
@@ -141,7 +143,7 @@ window.resetTranslationSession = async function () {
 };
 
 // Function to send text to translation server
-async function sendTextToTranslationServer(text) {
+async function sendTextToTranslationServer(text, isPartial = false) {
   if (!translationEnabled || !text.trim()) {
     return;
   }
@@ -150,16 +152,47 @@ async function sendTextToTranslationServer(text) {
   const cleanedText = text.trim();
   const wordCount = cleanedText.split(/\s+/).length;
 
-  // Only send if we have at least 3 words or a complete sentence-like structure
-  if (wordCount < 5 && !cleanedText.match(/[.!?]$/)) {
+  // For real-time translation: send if we have at least 5 words or it's an endpoint
+  if (wordCount < 5 && !isPartial && !cleanedText.match(/[.!?]$/)) {
     console.log(
       `⏭️ Skipping short fragment for translation: "${cleanedText}" (${wordCount} words)`
     );
     return;
   }
 
+  // Check if we've already sent this text for translation to prevent duplicates
+  if (sentTranslations.has(cleanedText)) {
+    console.log(
+      `🔄 Skipping duplicate translation request: "${cleanedText.substring(0, 50)}..."`
+    );
+    return;
+  }
+
+  // Also check if we've sent a very similar text (to catch minor variations)
+  const similarText = Array.from(sentTranslations).find((sent) => {
+    // If the texts are very similar (one contains the other and difference is small)
+    const longer = sent.length > cleanedText.length ? sent : cleanedText;
+    const shorter = sent.length > cleanedText.length ? cleanedText : sent;
+    return longer.includes(shorter) && longer.length - shorter.length < 10;
+  });
+
+  if (similarText) {
+    console.log(
+      `🔄 Skipping similar translation request: "${cleanedText.substring(0, 50)}..." (similar to: "${similarText.substring(0, 30)}...")`
+    );
+    return;
+  }
+
+  // Mark this text as sent
+  sentTranslations.add(cleanedText);
+  console.log(
+    `📤 Sending new translation request: "${cleanedText}" (${wordCount} words)`
+  );
+
+  // Translation will be created as independent block when received
+
   try {
-    const response = await fetch(`${translationServerUrl}/translate`, {
+    const response = await fetch(translationServerUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -167,24 +200,101 @@ async function sendTextToTranslationServer(text) {
       body: JSON.stringify({
         text: cleanedText,
         session_id: sessionId,
+        is_partial: isPartial,
       }),
     });
 
     if (response.ok) {
       const data = await response.json();
       console.log(
-        `✅ Translation sent: "${cleanedText}" (${wordCount} words) → Server processed`
+        `✅ Translation sent: "${cleanedText}" (${wordCount} words) → "${data.translated_text}"`
       );
       console.log(`🔄 Server response:`, data);
+
+      // Create new independent translation block
+      if (data.translated_text) {
+        const translationUpdateEvent = new CustomEvent("translationUpdate", {
+          detail: {
+            originalText: data.original_text || cleanedText,
+            translatedText: data.translated_text,
+            status: data.is_partial ? "partial" : "completed",
+            isPartial: data.is_partial || false,
+          },
+        });
+        window.dispatchEvent(translationUpdateEvent);
+        console.log(
+          `🌐 Created new translation block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
+        );
+      }
     } else {
       const errorData = await response.json();
-      console.error(
-        `❌ Translation failed: ${response.status} - ${errorData.error}`
-      );
+
+      // Error handling - just show status, no block creation needed
+
+      if (response.status === 503 && errorData.status === "starting_up") {
+        console.log(`⏰ Translation service starting up: ${errorData.error}`);
+        // Show user-friendly message that service is starting
+        showTranslationStatus(
+          "Service is starting up, please wait about 1 minute..."
+        );
+      } else {
+        console.error(
+          `❌ Translation failed: ${response.status} - ${errorData.error}`
+        );
+        showTranslationStatus(`Translation failed: ${errorData.error}`);
+      }
     }
   } catch (error) {
     console.error("🚫 Failed to send text to translation server:", error);
+
+    // Error handling - just show status, no block creation needed
+
+    showTranslationStatus("Translation service unavailable");
   }
+}
+
+// Function to show translation status to user
+function showTranslationStatus(message) {
+  // Create a temporary status indicator
+  const statusElement = document.createElement("div");
+  statusElement.textContent = message;
+  statusElement.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    max-width: 300px;
+    animation: fadeInOut 4s forwards;
+  `;
+
+  // Add animation style if not exists
+  if (!document.getElementById("translation-status-animation")) {
+    const style = document.createElement("style");
+    style.id = "translation-status-animation";
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(100%); }
+        10% { opacity: 1; transform: translateX(0); }
+        90% { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(100%); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.body.appendChild(statusElement);
+
+  // Remove after animation
+  setTimeout(() => {
+    if (statusElement.parentNode) {
+      document.body.removeChild(statusElement);
+    }
+  }, 4000);
 }
 
 // security Firebase setup write Token
@@ -242,6 +352,8 @@ clearBtn.onclick = function () {
   window.transcriptBlocks = []; // Reset blocks
   completedBlocks = []; // Reset completed blocks
   currentBlockId = null; // Reset current block ID
+  sentTranslations.clear(); // Clear translation history to allow fresh translations
+  lastSentText = ""; // Reset last sent text
   transcriptElement.innerHTML = "";
 
   // Trigger React component update
@@ -249,6 +361,10 @@ clearBtn.onclick = function () {
     detail: { blocks: [] },
   });
   window.dispatchEvent(transcriptUpdateEvent);
+
+  // Clear translation blocks as well
+  const translationClearEvent = new CustomEvent("translationClear");
+  window.dispatchEvent(translationClearEvent);
 
   // Reset the recognizer's stream so it starts fresh
   if (recognizer_stream) {
@@ -388,9 +504,7 @@ function getDisplayResult() {
     if (sendToZoomEnabled) {
       sendCaptionToZoom(captionText);
     }
-    if (translationEnabled) {
-      sendTextToTranslationServer(captionText);
-    }
+    // Note: Translation is only sent on sentence completion (isEndpoint) to avoid duplicates
     lastSentCaption = cleanAns.trim(); // Update lastSentCaption
   }
 
@@ -614,6 +728,54 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
+
+        // Real-time translation: send only NEW content that hasn't been translated yet
+        if (translationEnabled && result.trim()) {
+          const currentWordCount = result.trim().split(/\s+/).length;
+
+          // Only send partial translations if we have enough words
+          if (currentWordCount >= 8) {
+            let textToTranslate = "";
+
+            if (!lastSentText) {
+              // First time sending - send the whole thing
+              textToTranslate = result.trim();
+            } else {
+              // Extract only the NEW content that wasn't sent before
+              const lastSentLower = lastSentText.toLowerCase().trim();
+              const currentLower = result.toLowerCase().trim();
+
+              if (currentLower.startsWith(lastSentLower)) {
+                // Current text starts with previously sent text, extract only new part
+                const newPart = result.substring(lastSentText.length).trim();
+
+                // Only send if we have substantial new content (at least 5 words)
+                const newWordCount = newPart
+                  .split(/\s+/)
+                  .filter((w) => w.length > 0).length;
+                if (newWordCount >= 5) {
+                  textToTranslate = newPart;
+                } else {
+                  console.log(
+                    `⏭️ Skipping partial translation (only ${newWordCount} new words): "${newPart.substring(0, 30)}..."`
+                  );
+                }
+              } else {
+                // Current text doesn't start with previous text - it's a new direction
+                textToTranslate = result.trim();
+              }
+            }
+
+            if (textToTranslate) {
+              console.log(
+                `🔄 Sending NEW content for translation (${textToTranslate.split(/\s+/).length} words): "${textToTranslate.substring(0, 50)}..."`
+              );
+              sendTextToTranslationServer(textToTranslate, true);
+              lastSentText = result; // Update to current full text for next comparison
+            }
+          }
+        }
+
         // Every time new text arrives, reset the flush timer.
         // resetFlushTimer();
       }
@@ -622,17 +784,11 @@ if (navigator.mediaDevices.getUserMedia) {
         if (lastResult.length > 0) {
           updateResultList(lastResult);
           prevSubList.push(lastResult);
-          // Send completed sentence to translation server
-          if (translationEnabled) {
-            sendTextToTranslationServer(lastResult);
-          }
           lastResult = "";
           // Reset current block ID when sentence is complete
           currentBlockId = null;
-          // if (flushTimer) {
-          //   clearTimeout(flushTimer);
-          //   flushTimer = null;
-          // }
+          // Reset partial translation tracking
+          lastSentText = "";
         }
         recognizer.reset(recognizer_stream);
       }
