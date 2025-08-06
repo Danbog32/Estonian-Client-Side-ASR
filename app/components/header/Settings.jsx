@@ -20,6 +20,7 @@ import TextSizeSlider from "./TextSizeSlider";
 import LineHeightSlider from "./LineHeightSlider";
 import ZoomApiSwitchComponent from "./ZoomApiSwitchComponent";
 import FirebaseApiSwitchComponent from "./FirebaseApiSwitchComponent";
+import TranslationSwitchComponent from "./TranslationSwitchComponent";
 
 export default function Settings() {
   const { subtitleMode, setSubtitleMode, language, setLanguage } =
@@ -96,7 +97,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2">
                         <Button
                           variant={!subtitleMode ? "bordered" : "solid"}
-                          onClick={() => handleModeChange("text")}
+                          onPress={() => handleModeChange("text")}
                           className={`text-white ${
                             subtitleMode
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
@@ -107,7 +108,7 @@ export default function Settings() {
                         </Button>
                         <Button
                           variant={subtitleMode ? "bordered" : "solid"}
-                          onClick={() => handleModeChange("subtitle")}
+                          onPress={() => handleModeChange("subtitle")}
                           className={`text-white ${
                             !subtitleMode
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
@@ -126,7 +127,7 @@ export default function Settings() {
                       <div className="flex items-center gap-2 mb-2">
                         <Button
                           variant={language === "en" ? "bordered" : "solid"}
-                          onClick={() => setLanguage("en")}
+                          onPress={() => setLanguage("en")}
                           className={`text-white ${
                             language !== "en"
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
@@ -137,7 +138,7 @@ export default function Settings() {
                         </Button>
                         <Button
                           variant={language === "et" ? "bordered" : "solid"}
-                          onClick={() => setLanguage("et")}
+                          onPress={() => setLanguage("et")}
                           className={`text-white ${
                             language !== "et"
                               ? "bg-gray-900 hover:bg-gray-800 border-2 border-gray-900 hover:border-dashed"
@@ -154,6 +155,7 @@ export default function Settings() {
                         {t.advancedSettings}
                       </div>
                       {/* <FocusModeToggle /> */}
+                      <TranslationSwitchComponent />
                       <ZoomApiSwitchComponent />
                       <FirebaseApiSwitchComponent />
                     </div>
@@ -161,7 +163,7 @@ export default function Settings() {
                 </ModalBody>
               </ScrollShadow>
               <ModalFooter>
-                <Button color="danger" variant="light" onClick={onClose}>
+                <Button color="danger" variant="light" onPress={onClose}>
                   {t.close}
                 </Button>
               </ModalFooter>
