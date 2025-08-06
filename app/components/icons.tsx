@@ -14,6 +14,8 @@ import {
   CloudIcon,
   Check,
   Loader,
+  PanelLeftClose,
+  PanelTop,
 } from "lucide-react";
 
 export const Icons = {
@@ -32,4 +34,6 @@ export const Icons = {
   cloud: CloudIcon,
   check: Check,
   loader: Loader,
+  panelLeftClose: PanelLeftClose,
+  panelTop: PanelTop,
 };
