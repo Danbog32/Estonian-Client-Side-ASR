@@ -161,7 +161,8 @@ export default function TranslationSwitchComponent() {
           base: cn(
             "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
             "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
-            "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
+            "data-[selected=true]:border-white data-[selected=true]:bg-gray-700",
+            "relative"
           ),
           wrapper: "p-0 h-4 overflow-visible",
           thumb: cn(
@@ -182,6 +183,11 @@ export default function TranslationSwitchComponent() {
           </div>
           <p className="text-tiny text-white">{t.translationDescription}</p>
         </div>
+
+        {/* Beta badge positioned in top-right corner */}
+        <span className="absolute -top-4 -left-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white shadow-sm border border-blue-400/30 transform -rotate-45">
+          🛠️ Beta
+        </span>
       </Switch>
 
       {translationEnabled && (

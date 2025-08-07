@@ -171,6 +171,15 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
     >([]);
     const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
     const [isVerticalLayout, setIsVerticalLayout] = useState(false);
+    // Auto-scroll state
+    const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+    const [showScrollButton, setShowScrollButton] = useState(false);
+
+    // Refs for scroll containers
+    const estonianScrollRef = useRef<HTMLDivElement>(null);
+    const translationScrollRef = useRef<HTMLDivElement>(null);
+    const singleScrollRef = useRef<HTMLDivElement>(null);
+
     const { language, translationEnabled } = useSettings() as {
       language: "en" | "et";
       translationEnabled: boolean;
@@ -189,6 +198,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
         english: "English Translation",
         switchLayout: "Switch to vertical layout",
         switchToHorizontal: "Switch to horizontal layout",
+        scrollToBottom: "Scroll to bottom",
       },
       et: {
         complete: "Valmis",
@@ -199,10 +209,49 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
         english: "Inglise tõlge",
         switchLayout: "Lülitu vertikaalsele paigutusele",
         switchToHorizontal: "Lülitu horisontaalsele paigutusele",
+        scrollToBottom: "Keri alla",
       },
     };
 
     const t = translations[language];
+
+    // Function to check if a scroll container is at the bottom
+    const isScrolledToBottom = (element: HTMLDivElement | null): boolean => {
+      if (!element) return true;
+      // Calculate threshold based on text size and line height
+      // Use 1.5 lines of text as the threshold for "close enough"
+      const threshold = Math.max(5, textSize * lineHeight * 24 * 1.5); // 24px is base font size
+      return (
+        element.scrollHeight - element.clientHeight - element.scrollTop <=
+        threshold
+      );
+    };
+
+    // Function to scroll to bottom
+    const scrollToBottom = (element: HTMLDivElement | null) => {
+      if (element) {
+        element.scrollTop = element.scrollHeight;
+      }
+    };
+
+    // Function to handle scroll events and update auto-scroll state
+    const handleScroll = (element: HTMLDivElement | null) => {
+      if (!element) return;
+
+      const atBottom = isScrolledToBottom(element);
+
+      // Show/hide scroll button
+      setShowScrollButton(!atBottom);
+
+      // Re-enable auto-scroll if user scrolled to bottom
+      if (atBottom && !isAutoScrollEnabled) {
+        setIsAutoScrollEnabled(true);
+      }
+      // Disable auto-scroll if user scrolled up
+      else if (!atBottom && isAutoScrollEnabled) {
+        setIsAutoScrollEnabled(false);
+      }
+    };
 
     // Check for mobile viewport and auto-switch to vertical layout
     useEffect(() => {
@@ -217,6 +266,40 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       window.addEventListener("resize", checkViewport);
       return () => window.removeEventListener("resize", checkViewport);
     }, [isVerticalLayout]);
+
+    // Auto-scroll effect for new content
+    useEffect(() => {
+      if (!isAutoScrollEnabled) return;
+
+      const scrollContainers = translationEnabled
+        ? [estonianScrollRef.current, translationScrollRef.current]
+        : [singleScrollRef.current];
+
+      scrollContainers.forEach((container) => {
+        if (container && isScrolledToBottom(container)) {
+          scrollToBottom(container);
+        }
+      });
+    }, [
+      transcriptBlocks,
+      translationBlocks,
+      isAutoScrollEnabled,
+      translationEnabled,
+    ]);
+
+    // Scroll to bottom button handler
+    const handleScrollToBottomClick = () => {
+      const scrollContainers = translationEnabled
+        ? [estonianScrollRef.current, translationScrollRef.current]
+        : [singleScrollRef.current];
+
+      scrollContainers.forEach((container) => {
+        scrollToBottom(container);
+      });
+
+      setIsAutoScrollEnabled(true);
+      setShowScrollButton(false);
+    };
 
     useEffect(() => {
       const handleTranscriptUpdate = (event: CustomEvent) => {
@@ -398,6 +481,8 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                     fontSize: `${Math.min(textSize, 1.2)}rem`,
                     lineHeight: lineHeight,
                   }}
+                  onScroll={() => handleScroll(estonianScrollRef.current)}
+                  ref={estonianScrollRef}
                 >
                   {!loading && transcriptBlocks.length === 0 && (
                     <StartSpeakingPrompt />
@@ -433,6 +518,8 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                     fontSize: `${Math.min(textSize, 1.2)}rem`,
                     lineHeight: lineHeight,
                   }}
+                  onScroll={() => handleScroll(translationScrollRef.current)}
+                  ref={translationScrollRef}
                 >
                   {!loading &&
                     translationBlocks.length === 0 &&
@@ -521,6 +608,8 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
           <ScrollShadow
             className="text-white scroll-smooth overflow-auto p-4 space-y-3"
             style={{ fontSize: `${textSize}rem`, lineHeight: lineHeight }}
+            onScroll={() => handleScroll(singleScrollRef.current)}
+            ref={singleScrollRef}
           >
             {!loading && transcriptBlocks.length === 0 && (
               <StartSpeakingPrompt />
@@ -540,6 +629,21 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
               />
             ))}
           </ScrollShadow>
+        )}
+
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <Tooltip content={t.scrollToBottom} showArrow={true}>
+            <Button
+              onPress={handleScrollToBottomClick}
+              size="sm"
+              variant="ghost"
+              className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10 bg-gray-800/80 text-gray-300  border border-gray-600/50 rounded-full p-2 min-w-[40px] min-h-[40px] flex items-center justify-center"
+              isIconOnly
+            >
+              <Icons.arrowDown className="w-5 h-5 flex-shrink-0" />
+            </Button>
+          </Tooltip>
         )}
       </div>
     );

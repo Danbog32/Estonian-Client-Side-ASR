@@ -69,7 +69,7 @@ export default function Settings() {
       <div className="flex flex-wrap gap-0 sm:gap-3 z-[2]">
         <Button
           variant="bordered"
-          onClick={handleOpen}
+          onPress={handleOpen}
           color="light"
           className="text-white bg-gray-900 hover:bg-gray-800 transition duration-100 gap-1 min-w-0"
         >

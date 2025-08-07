@@ -16,6 +16,7 @@ import {
   Loader,
   PanelLeftClose,
   PanelTop,
+  ArrowDown,
 } from "lucide-react";
 
 export const Icons = {
@@ -36,4 +37,5 @@ export const Icons = {
   loader: Loader,
   panelLeftClose: PanelLeftClose,
   panelTop: PanelTop,
+  arrowDown: ArrowDown,
 };

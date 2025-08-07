@@ -153,7 +153,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
   const wordCount = cleanedText.split(/\s+/).length;
 
   // For real-time translation: send if we have at least 5 words or it's an endpoint
-  if (wordCount < 5 && !isPartial && !cleanedText.match(/[.!?]$/)) {
+  if (wordCount < 5 && isPartial && !cleanedText.match(/[.!?]$/)) {
     console.log(
       `⏭️ Skipping short fragment for translation: "${cleanedText}" (${wordCount} words)`
     );
@@ -729,12 +729,12 @@ if (navigator.mediaDevices.getUserMedia) {
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
 
-        // Real-time translation: send only NEW content that hasn't been translated yet
+        // Real-time translation: send text when words > 5 or at endpoint
         if (translationEnabled && result.trim()) {
           const currentWordCount = result.trim().split(/\s+/).length;
 
-          // Only send partial translations if we have enough words
-          if (currentWordCount >= 8) {
+          // Send translation if we have more than 5 words
+          if (currentWordCount >= 5) {
             let textToTranslate = "";
 
             if (!lastSentText) {
@@ -749,11 +749,11 @@ if (navigator.mediaDevices.getUserMedia) {
                 // Current text starts with previously sent text, extract only new part
                 const newPart = result.substring(lastSentText.length).trim();
 
-                // Only send if we have substantial new content (at least 5 words)
+                // Only send if we have substantial new content (at least 3 words)
                 const newWordCount = newPart
                   .split(/\s+/)
                   .filter((w) => w.length > 0).length;
-                if (newWordCount >= 5) {
+                if (newWordCount >= 3) {
                   textToTranslate = newPart;
                 } else {
                   console.log(
@@ -782,6 +782,15 @@ if (navigator.mediaDevices.getUserMedia) {
 
       if (isEndpoint) {
         if (lastResult.length > 0) {
+          // Send translation at endpoint if we have text and translation is enabled
+          if (translationEnabled && lastResult.trim()) {
+            const wordCount = lastResult.trim().split(/\s+/).length;
+            console.log(
+              `🏁 Endpoint reached - sending final translation (${wordCount} words): "${lastResult.substring(0, 50)}..."`
+            );
+            sendTextToTranslationServer(lastResult.trim(), false); // false = not partial
+          }
+
           updateResultList(lastResult);
           prevSubList.push(lastResult);
           lastResult = "";
