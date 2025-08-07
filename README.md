@@ -6,7 +6,7 @@
 
 - **Local Speech Recognition:** Processes audio directly in the browser without sending data to any server.
 - **Multi-Device Support:** Optionally, one computer can capture and recognize speech while sending the recognized text to other devices connected to the same session (see Settings).
-- **Chrome Compatibility:** The application is designed to work exclusively in Google Chrome for optimal performance.
+- **Compatibility:** You can use Eesti ASR with any of your favorite modern web browsers, including Chrome, Firefox, Edge, and Safari. The application is designed to work seamlessly across different operating systems and devices, so you can access speech recognition features whether you're on a desktop, laptop, tablet, or smartphone.
 - **Optimized Microphone Use:** For best results, it is recommended to use a microphone placed close to your mouth. Note that due to the small size of the browser-based model, performance may decrease in very noisy, spontaneous, or multi-speaker environments.
 
 ## App Info
