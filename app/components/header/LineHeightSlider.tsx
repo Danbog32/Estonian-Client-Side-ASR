@@ -2,7 +2,7 @@ import { Slider } from "@heroui/react";
 import { Icons } from "../icons";
 import { useSettings } from "../SettingsContext";
 
-export default function TextSizeSlider() {
+export default function LineHeightSlider() {
   const { lineHeight, setLineHeight, language } = useSettings() as {
     lineHeight: number;
     setLineHeight: (value: number) => void;
