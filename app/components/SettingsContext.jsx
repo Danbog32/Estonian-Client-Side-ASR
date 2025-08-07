@@ -11,7 +11,7 @@ export const useSettings = () => {
 };
 
 export const SettingsProvider = ({ children }) => {
-  const [textSize, setTextSize] = useState(4);
+  const [textSize, setTextSize] = useState(3);
   const [lineHeight, setLineHeight] = useState(1.4);
   const [showSoundClips, setShowSoundClips] = useState(true);
   const [subtitleMode, setSubtitleMode] = useState(false);
@@ -23,6 +23,7 @@ export const SettingsProvider = ({ children }) => {
   const [captionName, setCaptionName] = useState("");
   const [captionURL, setCaptionURL] = useState("");
   const [language, setLanguage] = useState("et"); // Add language state
+  const [translationEnabled, setTranslationEnabled] = useState(false); // Add translation state
   // const [focusMode, setFocusMode] = useState(false); // Add focusMode state
 
   return (
@@ -48,6 +49,8 @@ export const SettingsProvider = ({ children }) => {
         setCaptionURL,
         language,
         setLanguage,
+        translationEnabled,
+        setTranslationEnabled,
         // focusMode,
         // setFocusMode,
       }}

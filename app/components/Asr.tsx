@@ -58,9 +58,9 @@ export default function Asr() {
         onLoad={() => console.log("app-asr loaded")}
       />
       <Script
-        src={`onnx/sherpa-onnx-wasm-main-asr.js`}
+        src={`onnx/sherpa-onnx-wasm-main-asr-v2.js`}
         strategy="afterInteractive"
-        onLoad={() => console.log("sherpa-onnx-wasm-main-asr loaded")}
+        onLoad={() => console.log("sherpa-onnx-wasm-main-asr-v2 loaded")}
       />
 
       {loading && <GreetingLoading loadingMessage={loadingMessage} />}

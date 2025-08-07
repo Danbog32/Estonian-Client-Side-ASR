@@ -12,6 +12,11 @@ import {
   TrashIcon,
   Mic,
   CloudIcon,
+  Check,
+  Loader,
+  PanelLeftClose,
+  PanelTop,
+  ArrowDown,
 } from "lucide-react";
 
 export const Icons = {
@@ -28,4 +33,9 @@ export const Icons = {
   trash: TrashIcon,
   mic: Mic,
   cloud: CloudIcon,
+  check: Check,
+  loader: Loader,
+  panelLeftClose: PanelLeftClose,
+  panelTop: PanelTop,
+  arrowDown: ArrowDown,
 };
