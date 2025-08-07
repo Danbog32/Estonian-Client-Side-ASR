@@ -220,7 +220,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       if (!element) return true;
       // Calculate threshold based on text size and line height
       // Use 1.5 lines of text as the threshold for "close enough"
-      const threshold = Math.max(150, textSize * lineHeight * 24 * 1.5); // 24px is base font size
+      const threshold = Math.max(200, textSize * lineHeight * 24 * 1.5); // 24px is base font size
       return (
         element.scrollHeight - element.clientHeight - element.scrollTop <=
         threshold
