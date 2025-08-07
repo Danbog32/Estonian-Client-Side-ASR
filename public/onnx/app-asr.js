@@ -673,7 +673,22 @@ if (navigator.mediaDevices.getUserMedia) {
 
   let onSuccess = function (stream) {
     if (!audioCtx) {
-      audioCtx = new AudioContext({ sampleRate: 16000 });
+      // Firefox compatibility: detect browser and handle sample rate accordingly
+      const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+      
+      if (isFirefox) {
+        // For Firefox, don't specify sample rate to avoid connection errors
+        audioCtx = new AudioContext();
+        console.log('Firefox detected: using default sample rate', audioCtx.sampleRate);
+      } else {
+        // For Chrome and other browsers, try to use 16000 Hz for efficiency
+        try {
+          audioCtx = new AudioContext({ sampleRate: 16000 });
+        } catch (e) {
+          console.warn('16000 Hz not supported, using default sample rate');
+          audioCtx = new AudioContext();
+        }
+      }
     }
     console.log(audioCtx);
     recordSampleRate = audioCtx.sampleRate;
@@ -702,6 +717,7 @@ if (navigator.mediaDevices.getUserMedia) {
 
     recorder.onaudioprocess = function (e) {
       let samples = new Float32Array(e.inputBuffer.getChannelData(0));
+      // Always downsample from actual sample rate to 16000 Hz for the ASR model
       samples = downsampleBuffer(samples, expectedSampleRate);
 
       if (recognizer_stream == null) {
@@ -1091,15 +1107,21 @@ function toWav(samples) {
 
 // this function is copied from
 // https://github.com/awslabs/aws-lex-browser-audio-capture/blob/master/lib/worker.js#L46
+// Enhanced to always handle downsampling from any rate to target rate
 function downsampleBuffer(buffer, exportSampleRate) {
-  if (exportSampleRate === recordSampleRate) {
+  // Use the actual AudioContext sample rate, not the expected one
+  const sourceSampleRate = audioCtx ? audioCtx.sampleRate : recordSampleRate;
+  
+  if (exportSampleRate === sourceSampleRate) {
     return buffer;
   }
-  var sampleRateRatio = recordSampleRate / exportSampleRate;
+  
+  var sampleRateRatio = sourceSampleRate / exportSampleRate;
   var newLength = Math.round(buffer.length / sampleRateRatio);
   var result = new Float32Array(newLength);
   var offsetResult = 0;
   var offsetBuffer = 0;
+  
   while (offsetResult < result.length) {
     var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
     var accum = 0,
