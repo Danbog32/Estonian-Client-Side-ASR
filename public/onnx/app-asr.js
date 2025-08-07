@@ -729,49 +729,42 @@ if (navigator.mediaDevices.getUserMedia) {
       if (result.length > 0 && lastResult != result) {
         lastResult = result;
 
-        // Real-time translation: send text when words > 5 or at endpoint
+        // Translation: send only if the interim result contains >5 words and is different
         if (translationEnabled && result.trim()) {
           const currentWordCount = result.trim().split(/\s+/).length;
 
-          // Send translation if we have more than 5 words
-          if (currentWordCount >= 5) {
+          if (currentWordCount >= 8) {
+            const currentText = result.trim();
+
+            // Determine what new text to send
             let textToTranslate = "";
 
             if (!lastSentText) {
-              // First time sending - send the whole thing
-              textToTranslate = result.trim();
-            } else {
-              // Extract only the NEW content that wasn't sent before
-              const lastSentLower = lastSentText.toLowerCase().trim();
-              const currentLower = result.toLowerCase().trim();
+              // First time - send the whole text
+              textToTranslate = currentText;
+            } else if (currentText.startsWith(lastSentText)) {
+              // Current text contains previous text - extract only the new part
+              const newPart = currentText.substring(lastSentText.length).trim();
+              const newWordCount = newPart
+                .split(/\s+/)
+                .filter((w) => w.length > 0).length;
 
-              if (currentLower.startsWith(lastSentLower)) {
-                // Current text starts with previously sent text, extract only new part
-                const newPart = result.substring(lastSentText.length).trim();
-
-                // Only send if we have substantial new content (at least 3 words)
-                const newWordCount = newPart
-                  .split(/\s+/)
-                  .filter((w) => w.length > 0).length;
-                if (newWordCount >= 3) {
-                  textToTranslate = newPart;
-                } else {
-                  console.log(
-                    `⏭️ Skipping partial translation (only ${newWordCount} new words): "${newPart.substring(0, 30)}..."`
-                  );
-                }
-              } else {
-                // Current text doesn't start with previous text - it's a new direction
-                textToTranslate = result.trim();
+              // Only send if we have at least 8 new words
+              if (newWordCount >= 8) {
+                textToTranslate = newPart;
               }
+            } else {
+              // Text has changed completely - send the whole new text
+              textToTranslate = currentText;
             }
 
             if (textToTranslate) {
+              const wordsToTranslate = textToTranslate.split(/\s+/).length;
               console.log(
-                `🔄 Sending NEW content for translation (${textToTranslate.split(/\s+/).length} words): "${textToTranslate.substring(0, 50)}..."`
+                `🔄 Sending NEW text for translation (${wordsToTranslate} words): "${textToTranslate.substring(0, 50)}..."`
               );
-              sendTextToTranslationServer(textToTranslate, true);
-              lastSentText = result; // Update to current full text for next comparison
+              sendTextToTranslationServer(textToTranslate, false);
+              lastSentText = currentText; // Update to full current text
             }
           }
         }
@@ -781,14 +774,41 @@ if (navigator.mediaDevices.getUserMedia) {
       }
 
       if (isEndpoint) {
-        if (lastResult.length > 0) {
-          // Send translation at endpoint if we have text and translation is enabled
+        if (lastResult.length > 8) {
+          // Send translation once the recognizer signals an endpoint
           if (translationEnabled && lastResult.trim()) {
-            const wordCount = lastResult.trim().split(/\s+/).length;
-            console.log(
-              `🏁 Endpoint reached - sending final translation (${wordCount} words): "${lastResult.substring(0, 50)}..."`
-            );
-            sendTextToTranslationServer(lastResult.trim(), false); // false = not partial
+            const cleanedFinal = lastResult.trim();
+
+            // Determine what new text to send at endpoint
+            let finalTextToTranslate = "";
+
+            if (!lastSentText) {
+              // No previous text - send the whole final text
+              finalTextToTranslate = cleanedFinal;
+            } else if (cleanedFinal.startsWith(lastSentText)) {
+              // Final text contains previous text - extract only the new part
+              const newFinalPart = cleanedFinal
+                .substring(lastSentText.length)
+                .trim();
+              const newFinalWordCount = newFinalPart
+                .split(/\s+/)
+                .filter((w) => w.length > 0).length;
+              // At endpoint, send any new text (no minimum word requirement since it's sentence completion)
+              if (newFinalPart && newFinalWordCount > 0) {
+                finalTextToTranslate = newFinalPart;
+              }
+            } else if (cleanedFinal !== lastSentText) {
+              // Text has changed completely - send the whole final text
+              finalTextToTranslate = cleanedFinal;
+            }
+
+            if (finalTextToTranslate) {
+              const finalWordCount = finalTextToTranslate.split(/\s+/).length;
+              console.log(
+                `🏁 Endpoint reached - sending NEW final text (${finalWordCount} words): "${finalTextToTranslate.substring(0, 50)}..."`
+              );
+              sendTextToTranslationServer(finalTextToTranslate, false);
+            }
           }
 
           updateResultList(lastResult);
