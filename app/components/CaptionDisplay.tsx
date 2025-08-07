@@ -220,7 +220,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       if (!element) return true;
       // Calculate threshold based on text size and line height
       // Use 1.5 lines of text as the threshold for "close enough"
-      const threshold = Math.max(5, textSize * lineHeight * 24 * 1.5); // 24px is base font size
+      const threshold = Math.max(150, textSize * lineHeight * 24 * 1.5); // 24px is base font size
       return (
         element.scrollHeight - element.clientHeight - element.scrollTop <=
         threshold
@@ -515,7 +515,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                 <ScrollShadow
                   className="text-white scroll-smooth overflow-auto p-2 sm:p-4 space-y-2 sm:space-y-3 flex-1"
                   style={{
-                    fontSize: `${Math.min(textSize, 1.2)}rem`,
+                    fontSize: `${textSize}rem`,
                     lineHeight: lineHeight,
                   }}
                   onScroll={() => handleScroll(translationScrollRef.current)}
@@ -556,7 +556,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                         <p
                           className="text-green-100 pr-8 sm:pr-12 leading-relaxed"
                           style={{
-                            fontSize: `${Math.min(textSize, 1.2)}rem`,
+                            fontSize: `${textSize}rem`,
                             lineHeight: lineHeight,
                           }}
                         >

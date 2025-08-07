@@ -30,7 +30,7 @@ export default function TranslationSwitchComponent() {
       serviceStarting: "🔄 Service Starting Up...",
       serviceTesting: "🔄 Testing...",
       startupNotice:
-        "The translation service takes about 1 minute to start up when first accessed.",
+        "The translation service takes about 2 minutes to start up when first accessed.",
       resetSession: "Reset Translation Context",
     },
     et: {
@@ -42,7 +42,7 @@ export default function TranslationSwitchComponent() {
       serviceStarting: "🔄 Teenus käivitub...",
       serviceTesting: "🔄 Testimine...",
       startupNotice:
-        "Tõlketeenus vajab esmasel kasutamisel umbes 1 minutit käivitumiseks.",
+        "Tõlketeenus vajab esmasel kasutamisel umbes 2 minutit käivitumiseks.",
       resetSession: "Lähtesta tõlke kontekst",
     },
   };
@@ -185,7 +185,7 @@ export default function TranslationSwitchComponent() {
         </div>
 
         {/* Beta badge positioned in top-right corner */}
-        <span className="absolute -top-4 -left-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white shadow-sm border border-blue-400/30 transform -rotate-45">
+        <span className="absolute -top-3 -left-9 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-600 text-white shadow-sm border border-blue-400/30 transform -rotate-45">
           🛠️ Beta
         </span>
       </Switch>
