@@ -659,33 +659,38 @@ let mediaStream;
 let expectedSampleRate = 16000;
 let recordSampleRate; // the sampleRate of the microphone
 let recorder = null; // the microphone
+let muteGain = null; // silent sink for AudioWorklet processing
 let leftchannel = []; // TODO: Use a single channel
 
 let recordingLength = 0; // number of samples so far
 
 let recognizer = null;
 let recognizer_stream = null;
+let lastDecodeTs = 0;
 
 if (navigator.mediaDevices.getUserMedia) {
   console.log("getUserMedia supported.");
 
   const constraints = { audio: true };
 
-  let onSuccess = function (stream) {
+  let onSuccess = async function (stream) {
     if (!audioCtx) {
       // Firefox compatibility: detect browser and handle sample rate accordingly
-      const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-      
+      const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
+
       if (isFirefox) {
         // For Firefox, don't specify sample rate to avoid connection errors
         audioCtx = new AudioContext();
-        console.log('Firefox detected: using default sample rate', audioCtx.sampleRate);
+        console.log(
+          "Firefox detected: using default sample rate",
+          audioCtx.sampleRate
+        );
       } else {
         // For Chrome and other browsers, try to use 16000 Hz for efficiency
         try {
           audioCtx = new AudioContext({ sampleRate: 16000 });
         } catch (e) {
-          console.warn('16000 Hz not supported, using default sample rate');
+          console.warn("16000 Hz not supported, using default sample rate");
           audioCtx = new AudioContext();
         }
       }
@@ -697,34 +702,41 @@ if (navigator.mediaDevices.getUserMedia) {
     mediaStream = audioCtx.createMediaStreamSource(stream);
     console.log("media stream", mediaStream);
 
-    var bufferSize = 4096;
-    var numberOfInputChannels = 1;
-    var numberOfOutputChannels = 2;
-    if (audioCtx.createScriptProcessor) {
-      recorder = audioCtx.createScriptProcessor(
-        bufferSize,
-        numberOfInputChannels,
-        numberOfOutputChannels
-      );
-    } else {
-      recorder = audioCtx.createJavaScriptNode(
-        bufferSize,
-        numberOfInputChannels,
-        numberOfOutputChannels
-      );
+    await audioCtx.audioWorklet.addModule("/onnx/audio-worklet-processor.js");
+
+    recorder = new AudioWorkletNode(audioCtx, "downsampler", {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+    });
+
+    // Create a mute gain so we can connect worklet into the graph without audible output
+    if (!muteGain) {
+      muteGain = audioCtx.createGain();
+      muteGain.gain.value = 0;
     }
     console.log("recorder", recorder);
 
-    recorder.onaudioprocess = function (e) {
-      let samples = new Float32Array(e.inputBuffer.getChannelData(0));
-      // Always downsample from actual sample rate to 16000 Hz for the ASR model
-      samples = downsampleBuffer(samples, expectedSampleRate);
+    recorder.port.onmessage = (event) => {
+      const data = event.data;
+      const samples =
+        data instanceof Float32Array ? data : new Float32Array(data);
 
       if (recognizer_stream == null) {
         recognizer_stream = recognizer.createStream();
       }
 
       recognizer_stream.acceptWaveform(expectedSampleRate, samples);
+
+      const now =
+        typeof performance !== "undefined" && performance.now
+          ? performance.now()
+          : Date.now();
+      if (now - lastDecodeTs < 50) {
+        return;
+      }
+      lastDecodeTs = now;
+
       while (recognizer.isReady(recognizer_stream)) {
         recognizer.decode(recognizer_stream);
       }
@@ -934,18 +946,17 @@ if (navigator.mediaDevices.getUserMedia) {
         let s = samples[i];
         if (s >= 1) s = 1;
         else if (s <= -1) s = -1;
-
-        samples[i] = s;
         buf[i] = s * 32767;
       }
 
       leftchannel.push(buf);
-      recordingLength += bufferSize;
+      recordingLength += samples.length;
     };
 
     startBtn.onclick = function () {
       mediaStream.connect(recorder);
-      recorder.connect(audioCtx.destination);
+      recorder.connect(muteGain);
+      muteGain.connect(audioCtx.destination);
 
       console.log("recorder started");
 
@@ -965,8 +976,15 @@ if (navigator.mediaDevices.getUserMedia) {
       console.log("recorder stopped");
       // hint.innerText = 'Press "start" to continue';
 
-      recorder.disconnect(audioCtx.destination);
       mediaStream.disconnect(recorder);
+      if (muteGain) {
+        try {
+          recorder.disconnect(muteGain);
+        } catch (e) {}
+        try {
+          muteGain.disconnect(audioCtx.destination);
+        } catch (e) {}
+      }
 
       stopBtn.disabled = true;
       startBtn.disabled = false;
@@ -1111,17 +1129,17 @@ function toWav(samples) {
 function downsampleBuffer(buffer, exportSampleRate) {
   // Use the actual AudioContext sample rate, not the expected one
   const sourceSampleRate = audioCtx ? audioCtx.sampleRate : recordSampleRate;
-  
+
   if (exportSampleRate === sourceSampleRate) {
     return buffer;
   }
-  
+
   var sampleRateRatio = sourceSampleRate / exportSampleRate;
   var newLength = Math.round(buffer.length / sampleRateRatio);
   var result = new Float32Array(newLength);
   var offsetResult = 0;
   var offsetBuffer = 0;
-  
+
   while (offsetResult < result.length) {
     var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
     var accum = 0,
