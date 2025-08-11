@@ -2,6 +2,9 @@
 
 **Eesti ASR** is a web application that listens to audio input and converts speech to text directly in your browser. The core speech recognition engine runs locally on your device, ensuring that your speech is processed locally and never sent to remote servers for transcription.
 
+<img width="550" height="542" alt="image" src="https://github.com/user-attachments/assets/a023086e-cf93-49a1-a800-8b84a1d21828" />
+
+
 ## Privacy
 
 **Local Processing**: Speech recognition happens entirely on your device using WebAssembly (WASM) models. Your voice data never leaves your browser for ASR processing.
