@@ -18,13 +18,9 @@
 - **Compatibility:** You can use Eesti ASR with any of your favorite modern web browsers, including Chrome, Firefox, Edge, and Safari. The application is designed to work seamlessly across different operating systems and devices, so you can access speech recognition features whether you're on a desktop, laptop, tablet, or smartphone.
 - **Optimized Microphone Use:** For best results, it is recommended to use a microphone placed close to your mouth. Note that due to the small size of the browser-based model, performance may decrease in very noisy, spontaneous, or multi-speaker environments.
 
-## App Info
-
-This web application listens to audio input and converts speech to text. The speech recognition engine runs directly in the browser, ensuring that the user's speech is not transmitted to a server. This means that your privacy is maintained while still benefiting from powerful speech-to-text conversion.
-
 ## Live Demo
 
-Try the application live at [eestiasr.vercel.app](https://eestiasr.vercel.app).
+Try the application live at [eestiasr.vercel.app](https://eestiasr.vercel.app)
 
 ## Running Locally
 
