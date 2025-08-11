@@ -357,20 +357,22 @@ clearBtn.onclick = function () {
   transcriptElement.innerHTML = "";
 
   // Trigger React component update
-  const transcriptUpdateEvent = new CustomEvent("transcriptUpdate", {
+  const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
     detail: { blocks: [] },
   });
-  window.dispatchEvent(transcriptUpdateEvent);
+  window.dispatchEvent(transcriptUpdateEvt);
 
   // Clear translation blocks as well
   const translationClearEvent = new CustomEvent("translationClear");
   window.dispatchEvent(translationClearEvent);
 
-  // Reset the recognizer's stream so it starts fresh
-  if (recognizer_stream) {
-    recognizer.reset(recognizer_stream);
-    recognizer_stream = null;
+  // Reset the recognizer in the worker so it starts fresh
+  if (asrWorker) {
+    try {
+      asrWorker.postMessage({ type: "reset" });
+    } catch (_) {}
   }
+  recognizer_stream = null;
 
   // Show visual indicator that text was cleared
   const clearIndicator = document.createElement("div");
@@ -411,6 +413,12 @@ clearBtn.onclick = function () {
   setTimeout(() => {
     document.body.removeChild(clearIndicator);
   }, 1600);
+
+  // Also clear transcript blocks in the UI after worker reset
+  const transcriptClearedEvt = new CustomEvent("transcriptUpdate", {
+    detail: { blocks: [] },
+  });
+  window.dispatchEvent(transcriptClearedEvt);
 };
 
 function getDisplayResult() {
@@ -555,6 +563,170 @@ function getNewCaptionText(currentResult) {
   }
 }
 
+// Handle subtitle display helpers and list maintenance from the main thread
+function getLastNWords(text, n) {
+  let words = text.trim().split(/\s+/);
+  if (words.length > n) {
+    return words.slice(words.length - n).join(" ");
+  }
+
+  const cleanAns = cleanText(text);
+  const textToSend = checkAndClearText(cleanAns);
+
+  const captionText = cleanText(getNewCaptionText(cleanAns));
+  if (captionText) {
+    if (firebaseEnabled) {
+      sendCaptionToFirebase(textToSend);
+    }
+    if (sendToZoomEnabled) {
+      sendCaptionToZoom(captionText);
+    }
+    lastSentCaption = cleanAns.trim();
+  }
+  return text;
+}
+
+function updateResultList(newResult) {
+  if (!subtitleMode) {
+    resultList.push(newResult);
+    return;
+  }
+  let combinedText = resultList.join(" ") + " " + newResult;
+  let sentences = combinedText.trim().split(".").filter(Boolean);
+  let words = combinedText.trim().split(/\s+/);
+
+  if (words.length > maxWords) {
+    while (words.length > maxWords) {
+      let firstSentenceWords = sentences[0].trim().split(/\s+/).length;
+      if (firstSentenceWords > minSentenceLength) {
+        sentences.shift();
+      } else {
+        break;
+      }
+      combinedText = sentences.join(". ").trim();
+      words = combinedText.split(/\s+/);
+    }
+    resultList = sentences.map((sentence) => sentence.trim());
+  } else {
+    resultList.push(newResult);
+  }
+}
+
+function handlePartialResult(result) {
+  if (result.length > 0 && lastResult != result) {
+    lastResult = result;
+
+    if (translationEnabled && result.trim()) {
+      const currentWordCount = result.trim().split(/\s+/).length;
+      if (currentWordCount >= 8) {
+        const currentText = result.trim();
+        let textToTranslate = "";
+        if (!lastSentText) {
+          textToTranslate = currentText;
+        } else if (currentText.startsWith(lastSentText)) {
+          const newPart = currentText.substring(lastSentText.length).trim();
+          const newWordCount = newPart
+            .split(/\s+/)
+            .filter((w) => w.length > 0).length;
+          if (newWordCount >= 8) {
+            textToTranslate = newPart;
+          }
+        } else {
+          textToTranslate = currentText;
+        }
+        if (textToTranslate) {
+          sendTextToTranslationServer(textToTranslate, false);
+          lastSentText = currentText;
+        }
+      }
+    }
+  }
+
+  const isScrolledToBottom =
+    transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+    transcriptElement.scrollTop + 10;
+
+  if (transcriptElement) {
+    if (subtitleMode) {
+      let combinedText = resultList.join(" ") + " " + lastResult;
+      let displayText = getLastNWords(combinedText, maxWords);
+      transcriptElement.innerText = cleanText(displayText);
+    } else {
+      const result = getDisplayResult();
+      transcriptElement.innerText = result.displayText;
+      if (result.blocksChanged) {
+        const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
+          detail: { blocks: window.transcriptBlocks },
+        });
+        window.dispatchEvent(transcriptUpdateEvt);
+      }
+    }
+  }
+
+  if (isScrolledToBottom) {
+    transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  }
+}
+
+function handleFinalResult(finalText) {
+  if (typeof finalText !== "string") return;
+  lastResult = finalText;
+
+  if (lastResult.length > 8) {
+    if (translationEnabled && lastResult.trim()) {
+      const cleanedFinal = lastResult.trim();
+      let finalTextToTranslate = "";
+      if (!lastSentText) {
+        finalTextToTranslate = cleanedFinal;
+      } else if (cleanedFinal.startsWith(lastSentText)) {
+        const newFinalPart = cleanedFinal.substring(lastSentText.length).trim();
+        const newFinalWordCount = newFinalPart
+          .split(/\s+/)
+          .filter((w) => w.length > 0).length;
+        if (newFinalPart && newFinalWordCount > 0) {
+          finalTextToTranslate = newFinalPart;
+        }
+      } else if (cleanedFinal !== lastSentText) {
+        finalTextToTranslate = cleanedFinal;
+      }
+      if (finalTextToTranslate) {
+        sendTextToTranslationServer(finalTextToTranslate, false);
+      }
+    }
+
+    updateResultList(lastResult);
+    prevSubList.push(lastResult);
+    lastResult = "";
+    currentBlockId = null;
+    lastSentText = "";
+  }
+
+  const isScrolledToBottom =
+    transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+    transcriptElement.scrollTop + 10;
+
+  if (transcriptElement) {
+    if (subtitleMode) {
+      let combinedText = resultList.join(" ") + " " + lastResult;
+      let displayText = getLastNWords(combinedText, maxWords);
+      transcriptElement.innerText = cleanText(displayText);
+    } else {
+      const result = getDisplayResult();
+      transcriptElement.innerText = result.displayText;
+      if (result.blocksChanged) {
+        const transcriptUpdateEvt2 = new CustomEvent("transcriptUpdate", {
+          detail: { blocks: window.transcriptBlocks },
+        });
+        window.dispatchEvent(transcriptUpdateEvt2);
+      }
+    }
+  }
+
+  if (isScrolledToBottom) {
+    transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  }
+}
+
 // let flushTimer = null;
 
 // function resetFlushTimer() {
@@ -630,28 +802,37 @@ transcriptElement.addEventListener("scroll", () => {
   }
 });
 
-// Instead of: Module = {};
-window.Module = window.Module || {};
-// Attach our onRuntimeInitialized callback to the (possibly already defined) Module.
+// Initialize ASR Web Worker instead of loading WASM on the main thread
+let asrWorker = null;
+let asrWorkerInitialized = false;
 
-// https://emscripten.org/docs/api_reference/module.html#Module.locateFile
-Module.locateFile = function (path, scriptDirectory = "") {
-  // In a Next.js environment, the script directory can be ambiguous.
-  // We need to explicitly point to the correct location in the public folder.
-  const newPath = "/onnx/" + path;
-  console.log(`Resolving model data path: ${newPath}`);
-  return newPath;
-};
+function setupAsrWorker() {
+  if (asrWorker) return;
+  try {
+    asrWorker = new Worker("/onnx/asr-worker.js");
+    asrWorker.onmessage = (e) => {
+      const msg = e.data || {};
+      if (msg.type === "initialized") {
+        asrWorkerInitialized = true;
+        if (startBtn) startBtn.disabled = false;
+        const event = new Event("modelInitialized");
+        window.dispatchEvent(event);
+      } else if (msg.type === "partial") {
+        handlePartialResult(msg.text || "");
+      } else if (msg.type === "final") {
+        handleFinalResult(msg.text || "");
+      } else if (msg.type === "error") {
+        console.error("ASR worker error:", msg.error);
+      }
+    };
+    // Provide initial config
+    asrWorker.postMessage({ type: "init", expectedSampleRate: 16000 });
+  } catch (e) {
+    console.error("Failed to start ASR worker", e);
+  }
+}
 
-Module.onRuntimeInitialized = function () {
-  console.log("inited!");
-  startBtn.disabled = false;
-  recognizer = createOnlineRecognizer(Module);
-  console.log("recognizer is created!", recognizer);
-  // Signal that the model is ready for React component
-  const event = new Event("modelInitialized");
-  window.dispatchEvent(event);
-};
+setupAsrWorker();
 
 let audioCtx;
 let mediaStream;
@@ -664,6 +845,7 @@ let leftchannel = []; // TODO: Use a single channel
 
 let recordingLength = 0; // number of samples so far
 
+// recognizer is now in the worker
 let recognizer = null;
 let recognizer_stream = null;
 let lastDecodeTs = 0;
@@ -722,132 +904,10 @@ if (navigator.mediaDevices.getUserMedia) {
       const samples =
         data instanceof Float32Array ? data : new Float32Array(data);
 
-      if (recognizer_stream == null) {
-        recognizer_stream = recognizer.createStream();
-      }
-
-      recognizer_stream.acceptWaveform(expectedSampleRate, samples);
-
-      const now =
-        typeof performance !== "undefined" && performance.now
-          ? performance.now()
-          : Date.now();
-      if (now - lastDecodeTs < 50) {
-        return;
-      }
-      lastDecodeTs = now;
-
-      while (recognizer.isReady(recognizer_stream)) {
-        recognizer.decode(recognizer_stream);
-      }
-
-      let isEndpoint = recognizer.isEndpoint(recognizer_stream);
-      let result = recognizer.getResult(recognizer_stream).text;
-
-      // This block is required by the new model's architecture
-      if (recognizer.config.modelConfig.paraformer.encoder != "") {
-        let tailPaddings = new Float32Array(expectedSampleRate);
-        recognizer_stream.acceptWaveform(expectedSampleRate, tailPaddings);
-        while (recognizer.isReady(recognizer_stream)) {
-          recognizer.decode(recognizer_stream);
-        }
-        result = recognizer.getResult(recognizer_stream).text;
-      }
-
-      if (result.length > 0 && lastResult != result) {
-        lastResult = result;
-
-        // Translation: send only if the interim result contains >5 words and is different
-        if (translationEnabled && result.trim()) {
-          const currentWordCount = result.trim().split(/\s+/).length;
-
-          if (currentWordCount >= 8) {
-            const currentText = result.trim();
-
-            // Determine what new text to send
-            let textToTranslate = "";
-
-            if (!lastSentText) {
-              // First time - send the whole text
-              textToTranslate = currentText;
-            } else if (currentText.startsWith(lastSentText)) {
-              // Current text contains previous text - extract only the new part
-              const newPart = currentText.substring(lastSentText.length).trim();
-              const newWordCount = newPart
-                .split(/\s+/)
-                .filter((w) => w.length > 0).length;
-
-              // Only send if we have at least 8 new words
-              if (newWordCount >= 8) {
-                textToTranslate = newPart;
-              }
-            } else {
-              // Text has changed completely - send the whole new text
-              textToTranslate = currentText;
-            }
-
-            if (textToTranslate) {
-              const wordsToTranslate = textToTranslate.split(/\s+/).length;
-              console.log(
-                `🔄 Sending NEW text for translation (${wordsToTranslate} words): "${textToTranslate.substring(0, 50)}..."`
-              );
-              sendTextToTranslationServer(textToTranslate, false);
-              lastSentText = currentText; // Update to full current text
-            }
-          }
-        }
-
-        // Every time new text arrives, reset the flush timer.
-        // resetFlushTimer();
-      }
-
-      if (isEndpoint) {
-        if (lastResult.length > 8) {
-          // Send translation once the recognizer signals an endpoint
-          if (translationEnabled && lastResult.trim()) {
-            const cleanedFinal = lastResult.trim();
-
-            // Determine what new text to send at endpoint
-            let finalTextToTranslate = "";
-
-            if (!lastSentText) {
-              // No previous text - send the whole final text
-              finalTextToTranslate = cleanedFinal;
-            } else if (cleanedFinal.startsWith(lastSentText)) {
-              // Final text contains previous text - extract only the new part
-              const newFinalPart = cleanedFinal
-                .substring(lastSentText.length)
-                .trim();
-              const newFinalWordCount = newFinalPart
-                .split(/\s+/)
-                .filter((w) => w.length > 0).length;
-              // At endpoint, send any new text (no minimum word requirement since it's sentence completion)
-              if (newFinalPart && newFinalWordCount > 0) {
-                finalTextToTranslate = newFinalPart;
-              }
-            } else if (cleanedFinal !== lastSentText) {
-              // Text has changed completely - send the whole final text
-              finalTextToTranslate = cleanedFinal;
-            }
-
-            if (finalTextToTranslate) {
-              const finalWordCount = finalTextToTranslate.split(/\s+/).length;
-              console.log(
-                `🏁 Endpoint reached - sending NEW final text (${finalWordCount} words): "${finalTextToTranslate.substring(0, 50)}..."`
-              );
-              sendTextToTranslationServer(finalTextToTranslate, false);
-            }
-          }
-
-          updateResultList(lastResult);
-          prevSubList.push(lastResult);
-          lastResult = "";
-          // Reset current block ID when sentence is complete
-          currentBlockId = null;
-          // Reset partial translation tracking
-          lastSentText = "";
-        }
-        recognizer.reset(recognizer_stream);
+      // Forward audio to the ASR worker
+      if (asrWorkerInitialized && asrWorker) {
+        // Transfer the buffer to avoid copies
+        asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
       }
 
       const isScrolledToBottom =
@@ -860,16 +920,13 @@ if (navigator.mediaDevices.getUserMedia) {
           let displayText = getLastNWords(combinedText, maxWords);
           transcriptElement.innerText = cleanText(displayText);
         } else {
-          // Update display and only trigger React re-render if blocks changed
           const result = getDisplayResult();
           transcriptElement.innerText = result.displayText;
-
-          // Only trigger custom event for React component if blocks actually changed
           if (result.blocksChanged) {
-            const transcriptUpdateEvent = new CustomEvent("transcriptUpdate", {
+            const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
               detail: { blocks: window.transcriptBlocks },
             });
-            window.dispatchEvent(transcriptUpdateEvent);
+            window.dispatchEvent(transcriptUpdateEvt);
           }
         }
       }
