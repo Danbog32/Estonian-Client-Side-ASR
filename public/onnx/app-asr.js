@@ -836,6 +836,7 @@ setupAsrWorker();
 
 let audioCtx;
 let mediaStream;
+let userMediaStream = null; // Raw MediaStream from getUserMedia
 
 let expectedSampleRate = 16000;
 let recordSampleRate; // the sampleRate of the microphone
@@ -850,282 +851,332 @@ let recognizer = null;
 let recognizer_stream = null;
 let lastDecodeTs = 0;
 
-if (navigator.mediaDevices.getUserMedia) {
-  console.log("getUserMedia supported.");
+// Lazily initialize microphone and audio graph only when starting recognition
+async function setupAudioGraph(stream) {
+  if (!audioCtx || audioCtx.state === "closed") {
+    // Firefox compatibility: detect browser and handle sample rate accordingly
+    const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
 
-  const constraints = { audio: true };
-
-  let onSuccess = async function (stream) {
-    if (!audioCtx) {
-      // Firefox compatibility: detect browser and handle sample rate accordingly
-      const isFirefox = navigator.userAgent.toLowerCase().includes("firefox");
-
-      if (isFirefox) {
-        // For Firefox, don't specify sample rate to avoid connection errors
+    if (isFirefox) {
+      // For Firefox, don't specify sample rate to avoid connection errors
+      audioCtx = new AudioContext();
+      console.log(
+        "Firefox detected: using default sample rate",
+        audioCtx.sampleRate
+      );
+    } else {
+      // For Chrome and other browsers, try to use 16000 Hz for efficiency
+      try {
+        audioCtx = new AudioContext({ sampleRate: 16000 });
+      } catch (e) {
+        console.warn("16000 Hz not supported, using default sample rate");
         audioCtx = new AudioContext();
-        console.log(
-          "Firefox detected: using default sample rate",
-          audioCtx.sampleRate
-        );
+      }
+    }
+  }
+
+  console.log(audioCtx);
+  recordSampleRate = audioCtx.sampleRate;
+  console.log("sample rate " + recordSampleRate);
+
+  mediaStream = audioCtx.createMediaStreamSource(stream);
+  console.log("media stream", mediaStream);
+
+  // (Re)load the worklet module for the current AudioContext
+  await audioCtx.audioWorklet.addModule("/onnx/audio-worklet-processor.js");
+
+  recorder = new AudioWorkletNode(audioCtx, "downsampler", {
+    numberOfInputs: 1,
+    numberOfOutputs: 1,
+    outputChannelCount: [1],
+  });
+
+  // Create a mute gain so we can connect worklet into the graph without audible output
+  if (!muteGain || muteGain.context !== audioCtx) {
+    muteGain = audioCtx.createGain();
+    muteGain.gain.value = 0;
+  }
+  console.log("recorder", recorder);
+
+  recorder.port.onmessage = (event) => {
+    const data = event.data;
+    const samples =
+      data instanceof Float32Array ? data : new Float32Array(data);
+
+    // Forward audio to the ASR worker
+    if (asrWorkerInitialized && asrWorker) {
+      // Transfer the buffer to avoid copies
+      asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
+    }
+
+    const isScrolledToBottom =
+      transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+      transcriptElement.scrollTop + 10;
+
+    if (transcriptElement) {
+      if (subtitleMode) {
+        let combinedText = resultList.join(" ") + " " + lastResult;
+        let displayText = getLastNWords(combinedText, maxWords);
+        transcriptElement.innerText = cleanText(displayText);
       } else {
-        // For Chrome and other browsers, try to use 16000 Hz for efficiency
-        try {
-          audioCtx = new AudioContext({ sampleRate: 16000 });
-        } catch (e) {
-          console.warn("16000 Hz not supported, using default sample rate");
-          audioCtx = new AudioContext();
+        const result = getDisplayResult();
+        transcriptElement.innerText = result.displayText;
+        if (result.blocksChanged) {
+          const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
+            detail: { blocks: window.transcriptBlocks },
+          });
+          window.dispatchEvent(transcriptUpdateEvt);
         }
       }
     }
-    console.log(audioCtx);
-    recordSampleRate = audioCtx.sampleRate;
-    console.log("sample rate " + recordSampleRate);
 
-    mediaStream = audioCtx.createMediaStreamSource(stream);
-    console.log("media stream", mediaStream);
-
-    await audioCtx.audioWorklet.addModule("/onnx/audio-worklet-processor.js");
-
-    recorder = new AudioWorkletNode(audioCtx, "downsampler", {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      outputChannelCount: [1],
-    });
-
-    // Create a mute gain so we can connect worklet into the graph without audible output
-    if (!muteGain) {
-      muteGain = audioCtx.createGain();
-      muteGain.gain.value = 0;
+    if (isScrolledToBottom) {
+      transcriptElement.scrollTop = transcriptElement.scrollHeight;
     }
-    console.log("recorder", recorder);
 
-    recorder.port.onmessage = (event) => {
-      const data = event.data;
-      const samples =
-        data instanceof Float32Array ? data : new Float32Array(data);
-
-      // Forward audio to the ASR worker
-      if (asrWorkerInitialized && asrWorker) {
-        // Transfer the buffer to avoid copies
-        asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
+    // Function to get the last N words from a text
+    function getLastNWords(text, n) {
+      let words = text.trim().split(/\s+/);
+      if (words.length > n) {
+        return words.slice(words.length - n).join(" ");
       }
 
-      const isScrolledToBottom =
-        transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-        transcriptElement.scrollTop + 10;
+      const cleanAns = cleanText(text);
 
-      if (transcriptElement) {
-        if (subtitleMode) {
-          let combinedText = resultList.join(" ") + " " + lastResult;
-          let displayText = getLastNWords(combinedText, maxWords);
-          transcriptElement.innerText = cleanText(displayText);
-        } else {
-          const result = getDisplayResult();
-          transcriptElement.innerText = result.displayText;
-          if (result.blocksChanged) {
-            const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
-              detail: { blocks: window.transcriptBlocks },
-            });
-            window.dispatchEvent(transcriptUpdateEvt);
-          }
+      // Check text size and clear if necessary
+      const textToSend = checkAndClearText(cleanAns);
+
+      // Send captions if new words are detected
+      const captionText = cleanText(getNewCaptionText(cleanAns));
+      if (captionText) {
+        if (firebaseEnabled) {
+          sendCaptionToFirebase(textToSend);
         }
+        if (sendToZoomEnabled) {
+          sendCaptionToZoom(captionText);
+        }
+        lastSentCaption = cleanAns.trim(); // Update lastSentCaption
       }
+      return text;
+    }
 
-      if (isScrolledToBottom) {
-        transcriptElement.scrollTop = transcriptElement.scrollHeight;
+    // Function to update the resultList to maintain a rolling window of 24 words
+    function updateResultList(newResult) {
+      if (!subtitleMode) {
+        resultList.push(newResult);
+        return;
       }
+      // Combine existing resultList and newResult into a single string
+      let combinedText = resultList.join(" ") + " " + newResult;
+      let sentences = combinedText.trim().split(".").filter(Boolean); // Split by sentences
 
-      // Function to get the last N words from a text
-      function getLastNWords(text, n) {
-        let words = text.trim().split(/\s+/);
-        if (words.length > n) {
-          return words.slice(words.length - n).join(" ");
-        }
+      let words = combinedText.trim().split(/\s+/);
 
-        const cleanAns = cleanText(text);
+      // Trim the list if it exceeds the maxWords limit
+      if (words.length > maxWords) {
+        // Remove the first sentence until we're back under the maxWords limit
+        while (words.length > maxWords) {
+          let firstSentenceWords = sentences[0].trim().split(/\s+/).length;
 
-        // Check text size and clear if necessary
-        const textToSend = checkAndClearText(cleanAns);
-
-        // Send captions if new words are detected
-        const captionText = cleanText(getNewCaptionText(cleanAns));
-        if (captionText) {
-          if (firebaseEnabled) {
-            sendCaptionToFirebase(textToSend);
-          }
-          if (sendToZoomEnabled) {
-            sendCaptionToZoom(captionText);
-          }
-          lastSentCaption = cleanAns.trim(); // Update lastSentCaption
-        }
-        return text;
-      }
-
-      // Function to update the resultList to maintain a rolling window of 24 words
-      function updateResultList(newResult) {
-        if (!subtitleMode) {
-          resultList.push(newResult);
-          return;
-        }
-        // Combine existing resultList and newResult into a single string
-        let combinedText = resultList.join(" ") + " " + newResult;
-        let sentences = combinedText.trim().split(".").filter(Boolean); // Split by sentences
-
-        let words = combinedText.trim().split(/\s+/);
-
-        // Trim the list if it exceeds the maxWords limit
-        if (words.length > maxWords) {
-          // Remove the first sentence until we're back under the maxWords limit
-          while (words.length > maxWords) {
-            let firstSentenceWords = sentences[0].trim().split(/\s+/).length;
-
-            // Only remove the first sentence if it has more than minSentenceLength words
-            if (firstSentenceWords > minSentenceLength) {
-              sentences.shift(); // Remove the first sentence
-            } else {
-              break;
-            }
-
-            // Recalculate words after removing the sentence
-            combinedText = sentences.join(". ").trim();
-            words = combinedText.split(/\s+/);
+          // Only remove the first sentence if it has more than minSentenceLength words
+          if (firstSentenceWords > minSentenceLength) {
+            sentences.shift(); // Remove the first sentence
+          } else {
+            break;
           }
 
-          // Set the updated resultList to the remaining sentences
-          resultList = sentences.map((sentence) => sentence.trim()); // Add periods back to the end of each sentence
-        } else {
-          resultList.push(newResult);
+          // Recalculate words after removing the sentence
+          combinedText = sentences.join(". ").trim();
+          words = combinedText.split(/\s+/);
         }
+
+        // Set the updated resultList to the remaining sentences
+        resultList = sentences.map((sentence) => sentence.trim()); // Add periods back to the end of each sentence
+      } else {
+        resultList.push(newResult);
       }
+    }
 
-      let buf = new Int16Array(samples.length);
-      for (let i = 0; i < samples.length; ++i) {
-        let s = samples[i];
-        if (s >= 1) s = 1;
-        else if (s <= -1) s = -1;
-        buf[i] = s * 32767;
-      }
+    let buf = new Int16Array(samples.length);
+    for (let i = 0; i < samples.length; ++i) {
+      let s = samples[i];
+      if (s >= 1) s = 1;
+      else if (s <= -1) s = -1;
+      buf[i] = s * 32767;
+    }
 
-      leftchannel.push(buf);
-      recordingLength += samples.length;
-    };
+    leftchannel.push(buf);
+    recordingLength += samples.length;
+  };
+}
 
-    startBtn.onclick = function () {
-      mediaStream.connect(recorder);
-      recorder.connect(muteGain);
-      muteGain.connect(audioCtx.destination);
+async function acquireUserMedia() {
+  const constraints = { audio: true };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    userMediaStream = stream;
+    await setupAudioGraph(stream);
+  } catch (err) {
+    console.log("The following error occured: " + err);
+    throw err;
+  }
+}
 
-      console.log("recorder started");
+function connectGraph() {
+  if (!mediaStream || !recorder || !muteGain || !audioCtx) return;
+  mediaStream.connect(recorder);
+  recorder.connect(muteGain);
+  muteGain.connect(audioCtx.destination);
+}
 
-      stopBtn.disabled = false;
-      startBtn.disabled = true;
-
-      if (toggleBtn) {
-        toggleBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="none" class="w-4 h-4"><circle cx="12" cy="12" r="8" /></svg> Peata';
-
-        toggleBtn.className =
-          "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
-      }
-    };
-
-    stopBtn.onclick = function () {
-      console.log("recorder stopped");
-      // hint.innerText = 'Press "start" to continue';
-
+function disconnectGraph() {
+  try {
+    if (mediaStream && recorder) {
       mediaStream.disconnect(recorder);
-      if (muteGain) {
-        try {
-          recorder.disconnect(muteGain);
-        } catch (e) {}
-        try {
-          muteGain.disconnect(audioCtx.destination);
-        } catch (e) {}
-      }
+    }
+  } catch (_) {}
+  try {
+    if (recorder && muteGain) {
+      recorder.disconnect(muteGain);
+    }
+  } catch (_) {}
+  try {
+    if (muteGain && audioCtx) {
+      muteGain.disconnect(audioCtx.destination);
+    }
+  } catch (_) {}
+}
 
-      stopBtn.disabled = true;
-      startBtn.disabled = false;
+async function startRecordingInternal() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    console.log("getUserMedia not supported on your browser!");
+    alert("getUserMedia not supported on your browser!");
+    return;
+  }
 
-      if (toggleBtn) {
-        toggleBtn.innerHTML =
-          '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><polygon points="5,3 19,12 5,21" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" /></svg> Alusta';
+  if (!userMediaStream) {
+    await acquireUserMedia();
+  } else if (!audioCtx || audioCtx.state === "closed") {
+    await setupAudioGraph(userMediaStream);
+  }
 
-        toggleBtn.className =
-          "bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
-      }
+  connectGraph();
 
-      function getFirstTwoWords(text) {
-        let words = text.trim().split(/\s+/).slice(0, 2);
-        return words.join(" ");
-      }
+  console.log("recorder started");
 
-      let clipName = new Date().toISOString();
-      if (resultList.length > 0) {
-        clipName = getFirstTwoWords(resultList[0]);
-      }
+  if (stopBtn) stopBtn.disabled = false;
+  if (startBtn) startBtn.disabled = true;
 
-      const clipContainer = document.createElement("article");
-      const clipLabel = document.createElement("p");
-      const audio = document.createElement("audio");
-      const deleteButton = document.createElement("button");
+  if (toggleBtn) {
+    toggleBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke="none" class="w-4 h-4"><circle cx="12" cy="12" r="8" /></svg> Peata';
 
-      // Use an inline SVG for the trash icon
-      const deleteIcon = `
+    toggleBtn.className =
+      "bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
+  }
+}
+
+function stopRecordingInternal() {
+  console.log("recorder stopped");
+
+  // Disconnect audio graph
+  disconnectGraph();
+
+  // Stop and release the microphone tracks so the browser shows mic as unused
+  if (userMediaStream) {
+    try {
+      userMediaStream.getTracks().forEach((t) => t.stop());
+    } catch (_) {}
+    userMediaStream = null;
+  }
+
+  // Keep AudioContext for faster restart, but it's not required to hold the mic
+  // Optionally suspend to save CPU
+  if (audioCtx && audioCtx.state === "running") {
+    audioCtx.suspend().catch(() => {});
+  }
+
+  if (stopBtn) stopBtn.disabled = true;
+  if (startBtn) startBtn.disabled = false;
+
+  if (toggleBtn) {
+    toggleBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5"><polygon points="5,3 19,12 5,21" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" /></svg> Alusta';
+
+    toggleBtn.className =
+      "bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition duration-300 flex items-center gap-1";
+  }
+
+  function getFirstTwoWords(text) {
+    let words = text.trim().split(/\s+/).slice(0, 2);
+    return words.join(" ");
+  }
+
+  let clipName = new Date().toISOString();
+  if (resultList.length > 0) {
+    clipName = getFirstTwoWords(resultList[0]);
+  }
+
+  const clipContainer = document.createElement("article");
+  const clipLabel = document.createElement("p");
+  const audio = document.createElement("audio");
+  const deleteButton = document.createElement("button");
+
+  const deleteIcon = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
           <path d="M3 6h18v2H3V6zm2 2h14l-1.5 14h-11L5 8zm6-3h2v2h-2V5zm-3.5 0H11v2H8.5V5zm7 0H15v2h-2.5V5z"/>
         </svg>
       `;
 
-      clipContainer.classList.add("clip");
-      audio.setAttribute("controls", "");
-      deleteButton.className = "delete";
-      deleteButton.innerHTML = deleteIcon; // Set the inner HTML of the button to the SVG
+  clipContainer.classList.add("clip");
+  audio.setAttribute("controls", "");
+  deleteButton.className = "delete";
+  deleteButton.innerHTML = deleteIcon;
 
-      clipLabel.textContent = clipName;
+  clipLabel.textContent = clipName;
+  clipLabel.style.cursor = "pointer";
 
-      // Add cursor pointer to clipLabel
-      clipLabel.style.cursor = "pointer";
+  audio.controls = true;
+  let samples = flatten(leftchannel);
+  const blob = toWav(samples);
 
-      // clipContainer.appendChild(audio);
-      // clipContainer.appendChild(clipLabel);
-      // clipContainer.appendChild(deleteButton);
-      // soundClips.appendChild(clipContainer);
+  leftchannel = [];
+  const audioURL = window.URL.createObjectURL(blob);
+  audio.src = audioURL;
+  console.log("recorder stopped");
 
-      audio.controls = true;
-      let samples = flatten(leftchannel);
-      const blob = toWav(samples);
-
-      leftchannel = [];
-      const audioURL = window.URL.createObjectURL(blob);
-      audio.src = audioURL;
-      console.log("recorder stopped");
-
-      deleteButton.onclick = function (e) {
-        let evtTgt = e.target;
-        evtTgt.closest(".clip").remove(); // Safely find the parent container
-      };
-
-      clipLabel.onclick = function () {
-        const existingName = clipLabel.textContent;
-        const newClipName = prompt("Enter a new name for your sound clip?");
-        if (newClipName === null) {
-          clipLabel.textContent = existingName;
-        } else {
-          clipLabel.textContent = newClipName;
-        }
-      };
-    };
+  deleteButton.onclick = function (e) {
+    let evtTgt = e.target;
+    evtTgt.closest(".clip").remove();
   };
 
-  let onError = function (err) {
-    console.log("The following error occured: " + err);
+  clipLabel.onclick = function () {
+    const existingName = clipLabel.textContent;
+    const newClipName = prompt("Enter a new name for your sound clip?");
+    if (newClipName === null) {
+      clipLabel.textContent = existingName;
+    } else {
+      clipLabel.textContent = newClipName;
+    }
   };
-
-  navigator.mediaDevices.getUserMedia(constraints).then(onSuccess, onError);
-} else {
-  console.log("getUserMedia not supported on your browser!");
-  alert("getUserMedia not supported on your browser!");
 }
+
+// Wire up start/stop buttons if present
+if (startBtn) {
+  startBtn.onclick = function () {
+    startRecordingInternal();
+  };
+}
+
+if (stopBtn) {
+  stopBtn.onclick = function () {
+    stopRecordingInternal();
+  };
+}
+
+// Expose controls for React components if needed
+window.startRecognition = startRecordingInternal;
+window.stopRecognition = stopRecordingInternal;
 
 // Integration of additional code
 
