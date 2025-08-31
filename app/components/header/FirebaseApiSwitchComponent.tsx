@@ -4,7 +4,7 @@
 
 import { Switch, cn } from "@heroui/react";
 import { useEffect, useState } from "react";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 import QRCode from "react-qr-code";
 import { Icons } from "../icons";
 

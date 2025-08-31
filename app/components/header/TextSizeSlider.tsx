@@ -1,6 +1,6 @@
 import { Slider } from "@heroui/react";
 import { Icons } from "../icons";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 
 export default function TextSizeSlider() {
   const { textSize, setTextSize, language } = useSettings() as {

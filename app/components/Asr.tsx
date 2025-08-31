@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Script from "next/script";
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../providers/SettingsContext";
 import CaptionDisplay from "./CaptionDisplay";
 import GreetingLoading from "./GreetingLoading";
 

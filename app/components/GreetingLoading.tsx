@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Progress } from "@heroui/react";
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../providers/SettingsContext";
 
 interface GreetingLoadingProps {
   loadingMessage?: string;

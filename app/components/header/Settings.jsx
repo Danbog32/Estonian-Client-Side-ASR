@@ -14,7 +14,7 @@ import {
   ScrollShadow,
 } from "@heroui/react";
 import { Icons } from "../icons";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 // import FocusModeToggle from "./FocusModeToggle";
 import TextSizeSlider from "./TextSizeSlider";
 import LineHeightSlider from "./LineHeightSlider";

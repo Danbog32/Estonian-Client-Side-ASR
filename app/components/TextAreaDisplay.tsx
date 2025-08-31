@@ -3,14 +3,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Button,
-} from "@heroui/react";
+import { Popover, PopoverTrigger, PopoverContent, Button } from "@heroui/react";
 import { Icons } from "./icons"; // Adjust the path as necessary
-import { useSettings } from "./SettingsContext"; // Adjust the path as necessary
+import { useSettings } from "../providers/SettingsContext"; // Adjust the path as necessary
 
 interface TextAreaDisplayProps {
   textSize: number;

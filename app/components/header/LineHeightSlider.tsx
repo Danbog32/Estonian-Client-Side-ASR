@@ -1,6 +1,6 @@
 import { Slider } from "@heroui/react";
 import { Icons } from "../icons";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 
 export default function LineHeightSlider() {
   const { lineHeight, setLineHeight, language } = useSettings() as {

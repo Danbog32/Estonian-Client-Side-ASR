@@ -12,7 +12,7 @@ import {
   Link,
 } from "@heroui/react";
 import { Icons } from "./icons";
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../providers/SettingsContext";
 
 export default function InfoDrawer() {
   const { isOpen, onOpenChange } = useDisclosure();

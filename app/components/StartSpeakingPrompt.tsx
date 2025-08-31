@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../providers/SettingsContext";
 
 interface StartPromptProps {}
 

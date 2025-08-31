@@ -14,7 +14,7 @@ import {
 import { TalTechLogo } from "./TalTechLogo.jsx";
 import { Icons } from "../icons";
 import Settings from "./Settings";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);

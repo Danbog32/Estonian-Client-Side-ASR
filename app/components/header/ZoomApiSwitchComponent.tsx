@@ -4,7 +4,7 @@
 
 import { Switch, cn, Input, Button } from "@heroui/react";
 import { useState, useEffect } from "react";
-import { useSettings } from "../SettingsContext";
+import { useSettings } from "../../providers/SettingsContext";
 
 declare global {
   interface Window {

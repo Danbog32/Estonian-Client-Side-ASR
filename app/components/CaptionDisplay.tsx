@@ -2,7 +2,7 @@ import React, { useState, useEffect, memo, useRef } from "react";
 import { ScrollShadow, Tooltip, Button } from "@heroui/react";
 import StartSpeakingPrompt from "./StartSpeakingPrompt";
 import { Icons } from "./icons";
-import { useSettings } from "./SettingsContext";
+import { useSettings } from "../providers/SettingsContext";
 
 interface TranscriptBlock {
   id: string;
