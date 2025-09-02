@@ -55,6 +55,15 @@ export default function Asr() {
 
       {loading && <GreetingLoading loadingMessage={loadingMessage} />}
 
+      <h1 className="text-white text-2xl md:text-3xl font-semibold mt-6 text-center px-4 sr-only">
+        {translations[language]?.heading || translations.en.heading}
+      </h1>
+      <p className="text-gray-300 mt-3 max-w-2xl text-center px-4 sr-only">
+        {language === "et"
+          ? "Tasuta, ilma sisselogimiseta. Reaalajas eesti kõnekirjutus ja eesti→inglise subtiitrid otse brauseris."
+          : "Free and no login required. Real-time Estonian speech-to-text and Estonian→English live captions in your browser."}
+      </p>
+
       <CaptionDisplay
         textSize={textSize}
         lineHeight={lineHeight}

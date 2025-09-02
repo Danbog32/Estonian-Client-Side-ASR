@@ -2,6 +2,41 @@ import Asr from "./components/Asr";
 import Navbar from "./components/header/Navbar";
 import Footer from "./components/Footer";
 import Script from "next/script";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Free Estonian Speech-to-Text & Estonian→English Live Captions",
+    template: "%s | Estonian ASR",
+  },
+  description:
+    "Transcribe Estonian speech and get real-time Estonian→English live captions. 100% free, no login required.",
+  alternates: {
+    canonical: "/",
+    languages: {
+      en: "/",
+      et: "/",
+    },
+  },
+  openGraph: {
+    title: "Free Estonian Speech-to-Text & Estonian→English Live Captions",
+    description:
+      "Transcribe Estonian speech and get real-time Estonian→English live captions. 100% free, no login required.",
+    url: "/",
+    siteName: "Estonian ASR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free Estonian Speech-to-Text & Estonian→English Live Captions",
+    description:
+      "Transcribe Estonian speech and get real-time Estonian→English live captions. 100% free, no login required.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function Home() {
   return (

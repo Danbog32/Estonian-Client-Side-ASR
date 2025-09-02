@@ -10,8 +10,12 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Estonian ASR",
-  description: "Makes captions from your voice",
+  title: {
+    default: "Estonian ASR",
+    template: "%s | Estonian ASR",
+  },
+  description:
+    "Free Estonian speech-to-text and Estonian→English live captions. No login required.",
 };
 
 export default function RootLayout({
