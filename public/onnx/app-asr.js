@@ -389,9 +389,9 @@ async function sendTextToTranslationServer(text, isPartial = false) {
           },
         });
         window.dispatchEvent(translationUpdateEvent);
-        console.log(
-          `🌐 Appended translation to single block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
-        );
+        // console.log(
+        //   `🌐 Appended translation to single block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
+        // );
       }
     } else {
       const errorData = await response.json();

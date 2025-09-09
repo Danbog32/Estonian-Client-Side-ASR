@@ -318,10 +318,10 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       };
 
       const handleTranslationUpdate = (event: CustomEvent) => {
-        console.log(
-          "🔥 CaptionDisplay received translationUpdate event:",
-          event.detail
-        );
+        // console.log(
+        //   "🔥 CaptionDisplay received translationUpdate event:",
+        //   event.detail
+        // );
         const { originalText, translatedText } = event.detail;
 
         if (translatedText) {
