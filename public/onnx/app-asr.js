@@ -159,10 +159,22 @@ function initWebSocketAsr() {
         const message = JSON.parse(event.data);
         if (message.error) {
           console.error("WS ASR error:", message.error);
+          // If server reports no active stream, mark inactive and try to start a new one
+          if (
+            typeof message.error === "string" &&
+            message.error.toLowerCase().includes("no active stream")
+          ) {
+            wsStreamActive = false;
+            startWsStreamIfNeeded();
+          }
           return;
         }
         if (message.event === "stream_started") {
           wsStreamActive = true;
+          return;
+        }
+        if (message.event === "stream_ended") {
+          wsStreamActive = false;
           return;
         }
         if (message.event === "flushing") {
@@ -1124,6 +1136,7 @@ async function setupAudioGraph(stream) {
 
     // Route audio depending on ASR mode
     if (useWebSocketAsr) {
+      // Ensure a WS stream is active; if not, try to start it
       startWsStreamIfNeeded();
       if (wsAsr && wsAsrReady && wsStreamActive) {
         // Convert Float32 [-1,1] to 16-bit PCM LE and send
@@ -1136,7 +1149,11 @@ async function setupAudioGraph(stream) {
         }
         try {
           wsAsr.send(pcm.buffer);
-        } catch (_) {}
+        } catch (e) {
+          // If sending fails because stream isn't active, attempt to start and skip this frame
+          wsStreamActive = false;
+          startWsStreamIfNeeded();
+        }
       }
     } else if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
       // Transfer the buffer to avoid copies
@@ -1244,6 +1261,8 @@ async function setupAudioGraph(stream) {
   };
 
   // Try enabling SAB path once recorder exists
+  // Force re-init of SAB on newly created recorder even if it was previously enabled
+  usingSharedBuffer = false;
   setupSharedRingBufferIfPossible();
 }
 
@@ -1284,6 +1303,10 @@ function disconnectGraph() {
     }
   } catch (_) {}
   isGraphConnected = false;
+  // Ensure SAB will be reinitialized on next start
+  usingSharedBuffer = false;
+  sabDataBuffer = null;
+  sabCtrlBuffer = null;
 }
 
 async function reinitializeRecorderForCurrentMode() {
@@ -1307,6 +1330,13 @@ async function startRecordingInternal() {
     await acquireUserMedia();
   } else if (!audioCtx || audioCtx.state === "closed") {
     await setupAudioGraph(userMediaStream);
+  }
+
+  // If AudioContext was suspended on stop, resume it before connecting
+  if (audioCtx && audioCtx.state === "suspended") {
+    try {
+      await audioCtx.resume();
+    } catch (_) {}
   }
 
   connectGraph();
@@ -1337,6 +1367,9 @@ function stopRecordingInternal() {
   if (useWebSocketAsr && wsAsr && wsAsrReady) {
     try {
       wsAsrSendJson({ event: "flush" });
+      // Explicitly end current WS stream so a fresh 'start' will be sent on resume
+      wsAsrSendJson({ event: "end" });
+      wsStreamActive = false;
     } catch (_) {}
   }
 
