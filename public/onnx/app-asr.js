@@ -359,6 +359,17 @@ async function sendTextToTranslationServer(text, isPartial = false) {
   // UI will append incoming translations into a single accumulated block
 
   try {
+    // Build lightweight context: last two completed sentences
+    let context = [];
+    try {
+      if (Array.isArray(resultList) && resultList.length > 0) {
+        const startIdx = Math.max(0, resultList.length - 2);
+        context = resultList.slice(startIdx);
+      }
+    } catch (_) {
+      context = [];
+    }
+
     const response = await fetch(translationServerUrl, {
       method: "POST",
       headers: {
@@ -368,6 +379,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
         text: cleanedText,
         session_id: sessionId,
         is_partial: isPartial,
+        context,
       }),
     });
 
