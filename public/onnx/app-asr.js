@@ -115,6 +115,151 @@ window.setTranslationSettings = function (
   );
 };
 
+// WebSocket ASR integration (remote server)
+const WS_ASR_URL = "wss://tekstiks.ee/asr/ws/asr";
+let useWebSocketAsr = false; // When true, route audio to remote ASR over WebSocket
+let wsAsr = null; // WebSocket instance
+let wsAsrReady = false; // Connection open
+let wsStreamActive = false; // Start event sent and stream active
+
+function wsAsrSendJson(obj) {
+  try {
+    if (wsAsr && wsAsrReady) {
+      wsAsr.send(JSON.stringify(obj));
+    }
+  } catch (e) {
+    console.warn("WS ASR send failed", e);
+  }
+}
+
+function startWsStreamIfNeeded() {
+  if (wsAsr && wsAsrReady && !wsStreamActive) {
+    wsAsrSendJson({ event: "start" });
+    // Optionally pass config
+    wsAsrSendJson({ event: "config", n_best: 1 });
+    wsStreamActive = true;
+  }
+}
+
+function initWebSocketAsr() {
+  if (wsAsr) return; // already created
+  try {
+    wsAsr = new WebSocket(WS_ASR_URL);
+    wsAsr.binaryType = "arraybuffer";
+
+    wsAsr.onopen = () => {
+      wsAsrReady = true;
+      // Start a new stream upon connect
+      startWsStreamIfNeeded();
+      console.log("WS ASR connected");
+    };
+
+    wsAsr.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.error) {
+          console.error("WS ASR error:", message.error);
+          return;
+        }
+        if (message.event === "stream_started") {
+          wsStreamActive = true;
+          return;
+        }
+        if (message.event === "flushing") {
+          return;
+        }
+        if (message.event === "flush_complete") {
+          const alt = Array.isArray(message.alternatives)
+            ? message.alternatives[0]
+            : null;
+          const finalText = alt && alt.text ? alt.text : message.text || "";
+          if (finalText) handleFinalResult(finalText);
+          return;
+        }
+        if (message.event === "connection_closed") {
+          return;
+        }
+        // Generic final payload
+        if (message.is_final) {
+          const alt = Array.isArray(message.alternatives)
+            ? message.alternatives[0]
+            : null;
+          const finalText = alt && alt.text ? alt.text : message.text || "";
+          if (finalText) handleFinalResult(finalText);
+        } else if (typeof message.text === "string") {
+          handlePartialResult(message.text);
+        }
+      } catch (e) {
+        console.warn("WS ASR message parse failed", e);
+      }
+    };
+
+    wsAsr.onclose = () => {
+      wsAsrReady = false;
+      wsStreamActive = false;
+      wsAsr = null;
+      console.log("WS ASR disconnected");
+    };
+
+    wsAsr.onerror = (e) => {
+      console.error("WS ASR socket error", e);
+    };
+  } catch (e) {
+    console.error("Failed to init WS ASR", e);
+  }
+}
+
+function teardownWebSocketAsr(graceful = true) {
+  try {
+    if (wsAsr) {
+      if (graceful && wsAsrReady) {
+        // Try to end stream and close cleanly
+        wsAsrSendJson({ event: "end" });
+        wsAsrSendJson({ event: "close" });
+      }
+      try {
+        wsAsr.close();
+      } catch (_) {}
+    }
+  } finally {
+    wsAsr = null;
+    wsAsrReady = false;
+    wsStreamActive = false;
+  }
+}
+
+// Tie ASR mode to translation toggle per requirement
+const originalSetTranslationSettings = window.setTranslationSettings;
+window.setTranslationSettings = function (
+  enabled,
+  serverUrl = "/api/translate"
+) {
+  originalSetTranslationSettings(enabled, serverUrl);
+  useWebSocketAsr = !!enabled;
+  if (useWebSocketAsr) {
+    // Pause local worker processing while in WS mode
+    try {
+      asrWorker?.postMessage({ type: "pause" });
+    } catch (_) {}
+    initWebSocketAsr();
+  } else {
+    // Resume local worker when leaving WS mode
+    try {
+      asrWorker?.postMessage({ type: "resume" });
+    } catch (_) {}
+    teardownWebSocketAsr(true);
+  }
+  // If recording graph is active, reinitialize recorder to align SAB/port path
+  if (isGraphConnected) {
+    reinitializeRecorderForCurrentMode();
+  }
+};
+
+// Ensure clean shutdown
+window.addEventListener("beforeunload", () => {
+  teardownWebSocketAsr(true);
+});
+
 // Function to reset translation session (called from Settings or when stuck)
 window.resetTranslationSession = async function () {
   if (!translationEnabled) {
@@ -817,6 +962,11 @@ let usingSharedBuffer = false;
 
 function setupSharedRingBufferIfPossible() {
   if (!sabSupported) return false;
+  // When using WebSocket ASR, avoid SAB so frames arrive via port.onmessage
+  if (useWebSocketAsr) {
+    usingSharedBuffer = false;
+    return false;
+  }
   if (usingSharedBuffer) return true;
   if (!recorder || !asrWorker) return false;
 
@@ -895,6 +1045,7 @@ setupAsrWorker();
 let audioCtx;
 let mediaStream;
 let userMediaStream = null; // Raw MediaStream from getUserMedia
+let isGraphConnected = false; // Track whether audio graph is connected
 
 let expectedSampleRate = 16000;
 let recordSampleRate; // the sampleRate of the microphone
@@ -961,8 +1112,23 @@ async function setupAudioGraph(stream) {
     const samples =
       data instanceof Float32Array ? data : new Float32Array(data);
 
-    // Forward audio to the ASR worker
-    if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
+    // Route audio depending on ASR mode
+    if (useWebSocketAsr) {
+      startWsStreamIfNeeded();
+      if (wsAsr && wsAsrReady && wsStreamActive) {
+        // Convert Float32 [-1,1] to 16-bit PCM LE and send
+        const pcm = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; ++i) {
+          let s = samples[i];
+          if (s >= 1) s = 1;
+          else if (s <= -1) s = -1;
+          pcm[i] = s * 32767;
+        }
+        try {
+          wsAsr.send(pcm.buffer);
+        } catch (_) {}
+      }
+    } else if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
       // Transfer the buffer to avoid copies
       asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
     }
@@ -1088,6 +1254,7 @@ function connectGraph() {
   mediaStream.connect(recorder);
   recorder.connect(muteGain);
   muteGain.connect(audioCtx.destination);
+  isGraphConnected = true;
 }
 
 function disconnectGraph() {
@@ -1106,6 +1273,17 @@ function disconnectGraph() {
       muteGain.disconnect(audioCtx.destination);
     }
   } catch (_) {}
+  isGraphConnected = false;
+}
+
+async function reinitializeRecorderForCurrentMode() {
+  if (!userMediaStream) return;
+  // Recreate worklet node so SAB state aligns with current mode
+  disconnectGraph();
+  try {
+    await setupAudioGraph(userMediaStream);
+    connectGraph();
+  } catch (_) {}
 }
 
 async function startRecordingInternal() {
@@ -1123,6 +1301,11 @@ async function startRecordingInternal() {
 
   connectGraph();
 
+  // Ensure WS stream started if WS mode is active
+  if (useWebSocketAsr) {
+    startWsStreamIfNeeded();
+  }
+
   console.log("recorder started");
 
   if (stopBtn) stopBtn.disabled = false;
@@ -1139,6 +1322,13 @@ async function startRecordingInternal() {
 
 function stopRecordingInternal() {
   console.log("recorder stopped");
+
+  // If using WebSocket ASR, flush to get final result without closing stream
+  if (useWebSocketAsr && wsAsr && wsAsrReady) {
+    try {
+      wsAsrSendJson({ event: "flush" });
+    } catch (_) {}
+  }
 
   // Disconnect audio graph
   disconnectGraph();

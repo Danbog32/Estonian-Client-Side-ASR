@@ -17,6 +17,7 @@ let recognizer_stream = null;
 let expectedSampleRate = 16000;
 let lastDecodeTs = 0;
 let lastText = "";
+let paused = false; // when true, skip processing
 
 // SharedArrayBuffer reader state
 let sabEnabled = false;
@@ -37,6 +38,7 @@ Module.onRuntimeInitialized = function () {
 };
 
 function processSamples(samples) {
+  if (paused) return;
   if (!recognizer) return;
   if (!recognizer_stream) {
     recognizer_stream = recognizer.createStream();
@@ -99,6 +101,14 @@ self.onmessage = function (e) {
       }
       break;
     }
+    case "pause": {
+      paused = true;
+      break;
+    }
+    case "resume": {
+      paused = false;
+      break;
+    }
     case "sab_setup": {
       try {
         if (msg.dataSab && msg.controlSab && typeof msg.capacity === "number") {
@@ -151,6 +161,7 @@ self.onmessage = function (e) {
 };
 
 function drainRingToRecognizer() {
+  if (paused) return;
   if (!sabEnabled || !ringData || !ringCtrl) return;
   let w = Atomics.load(ringCtrl, IDX_WRITE);
   let r = Atomics.load(ringCtrl, IDX_READ);
