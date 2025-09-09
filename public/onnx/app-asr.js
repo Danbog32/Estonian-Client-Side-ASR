@@ -806,6 +806,62 @@ transcriptElement.addEventListener("scroll", () => {
 let asrWorker = null;
 let asrWorkerInitialized = false;
 
+// SharedArrayBuffer audio ring buffer (optional fast path)
+let sabSupported =
+  typeof SharedArrayBuffer !== "undefined" &&
+  (typeof crossOriginIsolated !== "undefined" ? crossOriginIsolated : false);
+let sabDataBuffer = null; // SharedArrayBuffer for audio samples (Float32)
+let sabCtrlBuffer = null; // SharedArrayBuffer for control (Int32: [w, r, flags])
+let sabRingCapacity = 16384; // ~1s at 16 kHz, power of two preferred
+let usingSharedBuffer = false;
+
+function setupSharedRingBufferIfPossible() {
+  if (!sabSupported) return false;
+  if (usingSharedBuffer) return true;
+  if (!recorder || !asrWorker) return false;
+
+  try {
+    sabDataBuffer = new SharedArrayBuffer(
+      Float32Array.BYTES_PER_ELEMENT * sabRingCapacity
+    );
+    sabCtrlBuffer = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 3);
+    const ctrl = new Int32Array(sabCtrlBuffer);
+    ctrl[0] = 0; // write index
+    ctrl[1] = 0; // read index
+    ctrl[2] = 0; // flags
+
+    // Send to AudioWorklet and Worker
+    try {
+      recorder.port.postMessage({
+        type: "sab_init",
+        dataSab: sabDataBuffer,
+        controlSab: sabCtrlBuffer,
+      });
+    } catch (e) {
+      console.warn("Failed to init SAB in worklet", e);
+    }
+
+    try {
+      asrWorker.postMessage({
+        type: "sab_setup",
+        dataSab: sabDataBuffer,
+        controlSab: sabCtrlBuffer,
+        capacity: sabRingCapacity,
+      });
+    } catch (e) {
+      console.warn("Failed to init SAB in ASR worker", e);
+    }
+
+    usingSharedBuffer = true;
+    console.log("SharedArrayBuffer audio path enabled");
+    return true;
+  } catch (e) {
+    console.warn("SharedArrayBuffer not available or failed to initialize", e);
+    usingSharedBuffer = false;
+    return false;
+  }
+}
+
 function setupAsrWorker() {
   if (asrWorker) return;
   try {
@@ -817,6 +873,8 @@ function setupAsrWorker() {
         if (startBtn) startBtn.disabled = false;
         const event = new Event("modelInitialized");
         window.dispatchEvent(event);
+        // Attempt SAB hookup once worker is ready
+        setupSharedRingBufferIfPossible();
       } else if (msg.type === "partial") {
         handlePartialResult(msg.text || "");
       } else if (msg.type === "final") {
@@ -904,7 +962,7 @@ async function setupAudioGraph(stream) {
       data instanceof Float32Array ? data : new Float32Array(data);
 
     // Forward audio to the ASR worker
-    if (asrWorkerInitialized && asrWorker) {
+    if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
       // Transfer the buffer to avoid copies
       asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
     }
@@ -1008,6 +1066,9 @@ async function setupAudioGraph(stream) {
     leftchannel.push(buf);
     recordingLength += samples.length;
   };
+
+  // Try enabling SAB path once recorder exists
+  setupSharedRingBufferIfPossible();
 }
 
 async function acquireUserMedia() {

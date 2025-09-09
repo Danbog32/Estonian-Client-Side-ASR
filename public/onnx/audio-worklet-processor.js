@@ -4,6 +4,30 @@ class DownsamplerProcessor extends AudioWorkletProcessor {
     this.targetSampleRate = 16000;
     this.sampleRateRatio = sampleRate / this.targetSampleRate;
     this.leftover = new Float32Array(0);
+
+    // Shared ring buffer state
+    this.sabEnabled = false;
+    this.ringData = null; // Float32Array view of SharedArrayBuffer
+    this.ringCtrl = null; // Int32Array [writeIndex, readIndex, flags]
+    this.ringCapacity = 0;
+
+    this.IDX_WRITE = 0;
+    this.IDX_READ = 1;
+    this.IDX_FLAGS = 2;
+
+    this.port.onmessage = (e) => {
+      const msg = e.data || {};
+      if (msg.type === "sab_init" && msg.dataSab && msg.controlSab) {
+        try {
+          this.ringData = new Float32Array(msg.dataSab);
+          this.ringCtrl = new Int32Array(msg.controlSab);
+          this.ringCapacity = this.ringData.length;
+          this.sabEnabled = true;
+        } catch (_) {
+          this.sabEnabled = false;
+        }
+      }
+    };
   }
 
   process(inputs) {
@@ -56,8 +80,56 @@ class DownsamplerProcessor extends AudioWorkletProcessor {
         this.leftover = new Float32Array(0);
       }
 
-      // Transfer ownership of the buffer to minimize GC pressure
-      this.port.postMessage(result, [result.buffer]);
+      if (this.sabEnabled && this.ringData && this.ringCtrl) {
+        // Write to shared ring buffer using Atomics to coordinate with consumer
+        const capacity = this.ringCapacity;
+        let w = Atomics.load(this.ringCtrl, this.IDX_WRITE);
+        let r = Atomics.load(this.ringCtrl, this.IDX_READ);
+        const used = (w - r + capacity) % capacity;
+        const free = capacity - used - 1;
+
+        let writeCount = result.length;
+        if (writeCount > capacity - 1) {
+          // If result larger than capacity, only keep the tail
+          writeCount = capacity - 1;
+        }
+
+        if (writeCount > free) {
+          // Drop the oldest samples by advancing read index
+          const drop = writeCount - free;
+          r = (r + drop) % capacity;
+          Atomics.store(this.ringCtrl, this.IDX_READ, r);
+        }
+
+        // Recompute used and free space after potential drop
+        w = Atomics.load(this.ringCtrl, this.IDX_WRITE);
+        r = Atomics.load(this.ringCtrl, this.IDX_READ);
+
+        // Write in up to two segments due to wrap-around
+        const firstPart = Math.min(writeCount, capacity - w);
+        if (firstPart > 0) {
+          this.ringData.set(result.subarray(0, firstPart), w);
+        }
+        const secondPart = writeCount - firstPart;
+        if (secondPart > 0) {
+          this.ringData.set(
+            result.subarray(firstPart, firstPart + secondPart),
+            0
+          );
+        }
+
+        // Publish new write index
+        Atomics.store(
+          this.ringCtrl,
+          this.IDX_WRITE,
+          (w + writeCount) % capacity
+        );
+        // Optional: wake a waiting consumer
+        Atomics.notify?.(this.ringCtrl, this.IDX_WRITE, 1);
+      } else {
+        // Fallback: postMessage to main thread
+        this.port.postMessage(result, [result.buffer]);
+      }
     } else {
       // Not enough data to produce a 16 kHz frame yet
       if (source !== channelData) {

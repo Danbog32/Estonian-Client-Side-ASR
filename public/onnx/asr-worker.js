@@ -18,6 +18,15 @@ let expectedSampleRate = 16000;
 let lastDecodeTs = 0;
 let lastText = "";
 
+// SharedArrayBuffer reader state
+let sabEnabled = false;
+let ringData = null; // Float32Array view of samples
+let ringCtrl = null; // Int32Array [writeIndex, readIndex, flags]
+let ringCapacity = 0;
+const IDX_WRITE = 0;
+const IDX_READ = 1;
+const IDX_FLAGS = 2;
+
 Module.onRuntimeInitialized = function () {
   try {
     recognizer = createOnlineRecognizer(Module);
@@ -90,6 +99,24 @@ self.onmessage = function (e) {
       }
       break;
     }
+    case "sab_setup": {
+      try {
+        if (msg.dataSab && msg.controlSab && typeof msg.capacity === "number") {
+          ringData = new Float32Array(msg.dataSab);
+          ringCtrl = new Int32Array(msg.controlSab);
+          ringCapacity = msg.capacity;
+          sabEnabled = true;
+          // Start a lightweight read loop using setInterval to avoid blocking
+          // 16kHz mono: 256 samples ~16ms, so poll ~10ms
+          if (!self._sabInterval) {
+            self._sabInterval = setInterval(drainRingToRecognizer, 16);
+          }
+        }
+      } catch (_) {
+        sabEnabled = false;
+      }
+      break;
+    }
     case "audio": {
       let samples = msg.samples;
       if (!(samples instanceof Float32Array) && samples?.buffer) {
@@ -122,3 +149,31 @@ self.onmessage = function (e) {
     }
   }
 };
+
+function drainRingToRecognizer() {
+  if (!sabEnabled || !ringData || !ringCtrl) return;
+  let w = Atomics.load(ringCtrl, IDX_WRITE);
+  let r = Atomics.load(ringCtrl, IDX_READ);
+  const capacity = ringCapacity || ringData.length;
+  const available = (w - r + capacity) % capacity;
+  if (available === 0) return;
+
+  // Read up to a chunk (e.g., 1024 samples) to limit per-iteration work
+  const toRead = Math.min(1024, available);
+  const chunk = new Float32Array(toRead);
+
+  const firstPart = Math.min(toRead, capacity - r);
+  if (firstPart > 0) {
+    chunk.set(ringData.subarray(r, r + firstPart), 0);
+  }
+  const secondPart = toRead - firstPart;
+  if (secondPart > 0) {
+    chunk.set(ringData.subarray(0, secondPart), firstPart);
+  }
+
+  // Advance read index
+  Atomics.store(ringCtrl, IDX_READ, (r + toRead) % capacity);
+
+  // Feed to recognizer
+  processSamples(chunk);
+}
