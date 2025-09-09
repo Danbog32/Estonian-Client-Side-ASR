@@ -334,7 +334,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
     `📤 Sending new translation request: "${cleanedText}" (${wordCount} words)`
   );
 
-  // Translation will be created as independent block when received
+  // UI will append incoming translations into a single accumulated block
 
   try {
     const response = await fetch(translationServerUrl, {
@@ -356,7 +356,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
       );
       console.log(`🔄 Server response:`, data);
 
-      // Create new independent translation block
+      // Notify UI to append translation into the single accumulated block
       if (data.translated_text) {
         const translationUpdateEvent = new CustomEvent("translationUpdate", {
           detail: {
@@ -368,7 +368,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
         });
         window.dispatchEvent(translationUpdateEvent);
         console.log(
-          `🌐 Created new translation block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
+          `🌐 Appended translation to single block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
         );
       }
     } else {

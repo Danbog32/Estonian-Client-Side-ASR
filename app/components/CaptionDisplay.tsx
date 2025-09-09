@@ -33,16 +33,6 @@ interface TranscriptBlockComponentProps {
   copiedBlockId: string | null;
 }
 
-interface TranslationBlockComponentProps {
-  block: TranscriptBlock;
-  index: number;
-  totalBlocks: number;
-  textSize: number;
-  lineHeight: number;
-  onCopyText: (text: string, blockId: string) => void;
-  copiedBlockId: string | null;
-}
-
 // Memoized TranscriptBlock component to prevent unnecessary re-renders
 const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
   ({
@@ -315,61 +305,70 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
         const { originalText, translatedText } = event.detail;
 
         if (translatedText) {
-          // Create a unique key for this translation to prevent duplicates
-          const translationKey = `${originalText}_${translatedText}`.trim();
-
-          // Check if we've already processed this exact translation
-          if (processedTranslations.current.has(translationKey)) {
-            console.log(
-              "🔄 Skipping duplicate translation (already processed):",
-              translatedText.substring(0, 50) + "..."
-            );
-            return;
-          }
-
-          // Mark this translation as processed
-          processedTranslations.current.add(translationKey);
+          const newText = String(translatedText).trim();
 
           setTranslationBlocks((prevBlocks) => {
-            // Check for duplicate translations in existing blocks
-            const isDuplicate = prevBlocks.some(
-              (block) =>
-                block.text.trim() === translatedText.trim() ||
-                (block.translation?.text === originalText && originalText)
-            );
+            const nowIso = new Date().toISOString();
+            // Ensure we keep only a single accumulated block
+            const existingBlock = prevBlocks[0];
 
-            if (isDuplicate) {
-              console.log(
-                "🔄 Skipping duplicate translation (found in blocks):",
-                translatedText.substring(0, 50) + "..."
-              );
-              return prevBlocks;
+            if (!existingBlock) {
+              const singleBlock: TranscriptBlock = {
+                id: "translation-accumulated",
+                text: newText,
+                isComplete: true,
+                timestamp: nowIso,
+                translation: {
+                  text: originalText || "",
+                  status: "completed",
+                  timestamp: nowIso,
+                  isPartial: false,
+                },
+              };
+              return [singleBlock];
             }
 
-            // Create a new translation block
-            const newTranslationBlock: TranscriptBlock = {
-              id: `translation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              text: translatedText,
-              isComplete: true, // All translations are treated as complete
-              timestamp: new Date().toISOString(),
+            const currentText = existingBlock.text || "";
+
+            // Merge strategy:
+            // - If newText is a superset of currentText → replace with newText
+            // - If newText is already contained → no-op
+            // - Otherwise append with a space
+            let merged = currentText;
+            if (newText.startsWith(currentText)) {
+              merged = newText;
+            } else if (
+              currentText.startsWith(newText) ||
+              currentText.includes(newText)
+            ) {
+              merged = currentText;
+            } else {
+              merged = (
+                currentText +
+                (currentText.endsWith(" ") ? "" : " ") +
+                newText
+              ).trim();
+            }
+
+            if (merged === currentText) {
+              return [existingBlock];
+            }
+
+            const updatedBlock: TranscriptBlock = {
+              ...existingBlock,
+              text: merged,
+              isComplete: true,
+              timestamp: nowIso,
               translation: {
-                text: originalText || "", // Store original text as reference
+                ...(existingBlock.translation || {}),
+                text: originalText || existingBlock.translation?.text || "",
                 status: "completed",
-                timestamp: new Date().toISOString(),
+                timestamp: nowIso,
                 isPartial: false,
               },
             };
 
-            const updatedBlocks = [...prevBlocks, newTranslationBlock];
-            console.log(
-              "📝 Updated translation blocks count:",
-              updatedBlocks.length
-            );
-            console.log(
-              "🌐 Added new translation block to UI:",
-              newTranslationBlock
-            );
-            return updatedBlocks;
+            return [updatedBlock];
           });
         } else {
           console.warn("⚠️ No translatedText in event:", event.detail);
@@ -539,11 +538,6 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                       className="bg-green-900/20 border border-green-700/30 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4 shadow-sm transition-all duration-300 ease-in-out"
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-300 border border-green-700/50">
-                          <Icons.check className="w-3 h-3 mr-1" />
-                          <span className="hidden sm:inline">{t.english}</span>
-                          <span className="sm:hidden">EN</span>
-                        </div>
                         <time className="text-xs text-gray-400">
                           {new Date(block.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
@@ -585,7 +579,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                           </Button>
                         </Tooltip>
                         {/* Show original text reference if available */}
-                        {block.translation?.text && (
+                        {/* {block.translation?.text && (
                           <div className="mt-2 pt-2 border-t border-green-800/30">
                             <p className="text-xs text-gray-400 italic">
                               {language === "en" ? "Original: " : "Algne: "}
@@ -595,7 +589,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                                 : block.translation.text}
                             </p>
                           </div>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   ))}
