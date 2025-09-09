@@ -159,10 +159,22 @@ function initWebSocketAsr() {
         const message = JSON.parse(event.data);
         if (message.error) {
           console.error("WS ASR error:", message.error);
+          // If server reports no active stream, mark inactive and try to start a new one
+          if (
+            typeof message.error === "string" &&
+            message.error.toLowerCase().includes("no active stream")
+          ) {
+            wsStreamActive = false;
+            startWsStreamIfNeeded();
+          }
           return;
         }
         if (message.event === "stream_started") {
           wsStreamActive = true;
+          return;
+        }
+        if (message.event === "stream_ended") {
+          wsStreamActive = false;
           return;
         }
         if (message.event === "flushing") {
@@ -234,8 +246,17 @@ window.setTranslationSettings = function (
   enabled,
   serverUrl = "/api/translate"
 ) {
+  // Always update internal translation flags
   originalSetTranslationSettings(enabled, serverUrl);
-  useWebSocketAsr = !!enabled;
+
+  // Prevent redundant toggles from causing audio graph resets
+  const desiredWsMode = !!enabled;
+  if (useWebSocketAsr === desiredWsMode) {
+    return;
+  }
+
+  useWebSocketAsr = desiredWsMode;
+
   if (useWebSocketAsr) {
     // Pause local worker processing while in WS mode
     try {
@@ -249,6 +270,7 @@ window.setTranslationSettings = function (
     } catch (_) {}
     teardownWebSocketAsr(true);
   }
+
   // If recording graph is active, reinitialize recorder to align SAB/port path
   if (isGraphConnected) {
     reinitializeRecorderForCurrentMode();
@@ -334,7 +356,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
     `📤 Sending new translation request: "${cleanedText}" (${wordCount} words)`
   );
 
-  // Translation will be created as independent block when received
+  // UI will append incoming translations into a single accumulated block
 
   try {
     const response = await fetch(translationServerUrl, {
@@ -356,7 +378,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
       );
       console.log(`🔄 Server response:`, data);
 
-      // Create new independent translation block
+      // Notify UI to append translation into the single accumulated block
       if (data.translated_text) {
         const translationUpdateEvent = new CustomEvent("translationUpdate", {
           detail: {
@@ -368,7 +390,7 @@ async function sendTextToTranslationServer(text, isPartial = false) {
         });
         window.dispatchEvent(translationUpdateEvent);
         console.log(
-          `🌐 Created new translation block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
+          `🌐 Appended translation to single block: "${data.translated_text}" (${data.is_partial ? "partial" : "complete"})`
         );
       }
     } else {
@@ -763,7 +785,7 @@ function handlePartialResult(result) {
 
     if (translationEnabled && result.trim()) {
       const currentWordCount = result.trim().split(/\s+/).length;
-      if (currentWordCount >= 8) {
+      if (currentWordCount >= 6) {
         const currentText = result.trim();
         let textToTranslate = "";
         if (!lastSentText) {
@@ -773,14 +795,14 @@ function handlePartialResult(result) {
           const newWordCount = newPart
             .split(/\s+/)
             .filter((w) => w.length > 0).length;
-          if (newWordCount >= 8) {
+          if (newWordCount >= 6) {
             textToTranslate = newPart;
           }
         } else {
           textToTranslate = currentText;
         }
         if (textToTranslate) {
-          sendTextToTranslationServer(textToTranslate, false);
+          sendTextToTranslationServer(textToTranslate, true);
           lastSentText = currentText;
         }
       }
@@ -1114,6 +1136,7 @@ async function setupAudioGraph(stream) {
 
     // Route audio depending on ASR mode
     if (useWebSocketAsr) {
+      // Ensure a WS stream is active; if not, try to start it
       startWsStreamIfNeeded();
       if (wsAsr && wsAsrReady && wsStreamActive) {
         // Convert Float32 [-1,1] to 16-bit PCM LE and send
@@ -1126,7 +1149,11 @@ async function setupAudioGraph(stream) {
         }
         try {
           wsAsr.send(pcm.buffer);
-        } catch (_) {}
+        } catch (e) {
+          // If sending fails because stream isn't active, attempt to start and skip this frame
+          wsStreamActive = false;
+          startWsStreamIfNeeded();
+        }
       }
     } else if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
       // Transfer the buffer to avoid copies
@@ -1234,6 +1261,8 @@ async function setupAudioGraph(stream) {
   };
 
   // Try enabling SAB path once recorder exists
+  // Force re-init of SAB on newly created recorder even if it was previously enabled
+  usingSharedBuffer = false;
   setupSharedRingBufferIfPossible();
 }
 
@@ -1274,6 +1303,10 @@ function disconnectGraph() {
     }
   } catch (_) {}
   isGraphConnected = false;
+  // Ensure SAB will be reinitialized on next start
+  usingSharedBuffer = false;
+  sabDataBuffer = null;
+  sabCtrlBuffer = null;
 }
 
 async function reinitializeRecorderForCurrentMode() {
@@ -1297,6 +1330,13 @@ async function startRecordingInternal() {
     await acquireUserMedia();
   } else if (!audioCtx || audioCtx.state === "closed") {
     await setupAudioGraph(userMediaStream);
+  }
+
+  // If AudioContext was suspended on stop, resume it before connecting
+  if (audioCtx && audioCtx.state === "suspended") {
+    try {
+      await audioCtx.resume();
+    } catch (_) {}
   }
 
   connectGraph();
@@ -1327,6 +1367,9 @@ function stopRecordingInternal() {
   if (useWebSocketAsr && wsAsr && wsAsrReady) {
     try {
       wsAsrSendJson({ event: "flush" });
+      // Explicitly end current WS stream so a fresh 'start' will be sent on resume
+      wsAsrSendJson({ event: "end" });
+      wsStreamActive = false;
     } catch (_) {}
   }
 
