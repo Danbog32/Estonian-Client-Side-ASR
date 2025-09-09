@@ -554,7 +554,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                             lineHeight: lineHeight,
                           }}
                         >
-                          {block.text}
+                          {formatDisplayText(block.text)}
                         </p>
                         <Tooltip content={t.copyText} showArrow={true}>
                           <Button
