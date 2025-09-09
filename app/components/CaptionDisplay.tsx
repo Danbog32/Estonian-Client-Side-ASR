@@ -179,6 +179,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
     // Auto-scroll state
     const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
     const [showScrollButton, setShowScrollButton] = useState(false);
+    const [copiedAll, setCopiedAll] = useState(false);
 
     // Refs for scroll containers
     const estonianScrollRef = useRef<HTMLDivElement>(null);
@@ -204,6 +205,8 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
         switchLayout: "Switch to vertical layout",
         switchToHorizontal: "Switch to horizontal layout",
         scrollToBottom: "Scroll to bottom",
+        copyAll: "Copy all",
+        copied: "Copied",
       },
       et: {
         complete: "Valmis",
@@ -215,6 +218,8 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
         switchLayout: "Lülitu vertikaalsele paigutusele",
         switchToHorizontal: "Lülitu horisontaalsele paigutusele",
         scrollToBottom: "Keri alla",
+        copyAll: "Kopeeri kõik",
+        copied: "Kopeeritud",
       },
     };
 
@@ -441,14 +446,48 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       }
     };
 
-    const toggleLayout = () => {
-      setIsVerticalLayout(!isVerticalLayout);
-    };
+    // const toggleLayout = () => {
+    //   setIsVerticalLayout(!isVerticalLayout);
+    // };
+
+    // const handleCopyAll = async () => {
+    //   try {
+    //     const allText = transcriptBlocks.map((b) => b.text).join(" \n");
+    //     await navigator.clipboard.writeText(allText || "");
+    //     setCopiedAll(true);
+    //     setTimeout(() => setCopiedAll(false), 1500);
+    //   } catch (e) {
+    //     console.error("Failed to copy all text", e);
+    //   }
+    // };
 
     return (
       <div className="flex flex-col h-full w-full justify-end">
         {/* Hidden element for backward compatibility with ASR script */}
         <div id="transcriptText" className="hidden"></div>
+
+        {/* Top toolbar */}
+        {/* <div className="flex justify-end p-2 border-b border-gray-700/50">
+          <Tooltip content={copiedAll ? t.copied : t.copyAll} showArrow={true}>
+            <Button
+              onPress={handleCopyAll}
+              size="sm"
+              className="text-gray-300 hover:text-white bg-gray-700/40 hover:bg-gray-700/60 border border-gray-600/50"
+            >
+              {copiedAll ? (
+                <div className="flex items-center gap-1">
+                  <Icons.check className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.copied}</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Icons.copy className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t.copyAll}</span>
+                </div>
+              )}
+            </Button>
+          </Tooltip>
+        </div> */}
 
         {translationEnabled ? (
           <div className="flex flex-col h-full">
