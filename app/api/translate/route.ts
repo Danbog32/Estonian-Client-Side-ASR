@@ -9,6 +9,7 @@ interface TranslationRequest {
   text: string;
   session_id?: string;
   is_partial?: boolean;
+  context?: string[]; // Optional small context (e.g., last two sentences)
 }
 
 interface LLMResponse {
@@ -33,7 +34,12 @@ function cleanupSession(sessionId: string) {
 export async function POST(request: NextRequest) {
   try {
     const body: TranslationRequest = await request.json();
-    const { text, session_id = "default", is_partial = false } = body;
+    const {
+      text,
+      session_id = "default",
+      is_partial = false,
+      context = [],
+    } = body;
 
     if (!text || typeof text !== "string") {
       return NextResponse.json(
@@ -47,10 +53,10 @@ export async function POST(request: NextRequest) {
       sessionContext.set(session_id, []);
     }
 
-    const context = sessionContext.get(session_id)!;
+    const sessionHistory = sessionContext.get(session_id)!;
 
-    // Add current text to context
-    context.push(text);
+    // Add current text to session history
+    sessionHistory.push(text);
     cleanupSession(session_id);
 
     // Debug logging
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔢 Context length: ${context.length}`);
 
     // Enhanced prompt with strict instructions to prevent hallucinations
-    const systemPrompt = `You are a professional Estonian to English translator. Follow these rules strictly:
+    const systemPrompt = `You are a professional Estonian→English translator. Follow these rules strictly:
 
 1. ONLY translate Estonian text to English
 2. If the text is not Estonian or is unclear, respond with "UNTRANSLATABLE"
@@ -70,14 +76,26 @@ export async function POST(request: NextRequest) {
 5. Do NOT repeat the original text if you cannot translate it
 6. Maintain the original meaning and tone exactly
 7. For partial sentences, translate what is clear and mark uncertainty with [...]
+8. You may use the provided recent context only to disambiguate pronouns/names.
+9. OUTPUT REQUIREMENT: Return ONLY the English translation of the user's "Text" (new words). Do not repeat or translate the context.
 
 Quality check: The input should contain Estonian language characteristics.`;
 
-    const userPrompt = `Translate this Estonian text to English. If it's not Estonian or unclear, respond with "UNTRANSLATABLE".
+    // Join context into a compact bullet list
+    const contextText =
+      Array.isArray(context) && context.length
+        ? context.map((s) => `- ${s}`).join("\n")
+        : "(none)";
 
-Estonian: ${text}
+    const userPrompt = `Translate ONLY the user's Text from Estonian to English. Use Context purely for disambiguation. Output must contain only the translation of Text (no explanations).
 
-English:`;
+Context (previous sentences):
+${contextText}
+
+Text:
+${text}
+
+Answer with ONLY the English translation of Text:`;
 
     const llmPayload = {
       model: MODEL,
