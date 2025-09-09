@@ -234,8 +234,17 @@ window.setTranslationSettings = function (
   enabled,
   serverUrl = "/api/translate"
 ) {
+  // Always update internal translation flags
   originalSetTranslationSettings(enabled, serverUrl);
-  useWebSocketAsr = !!enabled;
+
+  // Prevent redundant toggles from causing audio graph resets
+  const desiredWsMode = !!enabled;
+  if (useWebSocketAsr === desiredWsMode) {
+    return;
+  }
+
+  useWebSocketAsr = desiredWsMode;
+
   if (useWebSocketAsr) {
     // Pause local worker processing while in WS mode
     try {
@@ -249,6 +258,7 @@ window.setTranslationSettings = function (
     } catch (_) {}
     teardownWebSocketAsr(true);
   }
+
   // If recording graph is active, reinitialize recorder to align SAB/port path
   if (isGraphConnected) {
     reinitializeRecorderForCurrentMode();
