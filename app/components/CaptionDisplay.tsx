@@ -4,6 +4,21 @@ import StartSpeakingPrompt from "./StartSpeakingPrompt";
 import { Icons } from "./icons";
 import { useSettings } from "../providers/SettingsContext";
 
+// Lightweight punctuation/spacing cleanup for display (shared by components)
+const formatDisplayText = (text: string): string => {
+  if (!text) return text;
+  let s = text;
+  // Remove spaces before punctuation
+  s = s.replace(/\s+([,\.!\?;:])/g, "$1");
+  // Ensure a single space after punctuation if followed by a word/quote
+  s = s.replace(/([,\.!\?;:])(?!\s|$)/g, "$1 ");
+  // Collapse multiple spaces
+  s = s.replace(/\s{2,}/g, " ");
+  // Trim outer spaces
+  s = s.trim();
+  return s;
+};
+
 interface TranscriptBlock {
   id: string;
   text: string;
@@ -117,7 +132,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
               lineHeight: lineHeight,
             }}
           >
-            {block.text}
+            {formatDisplayText(block.text)}
           </p>
 
           {/* Copy button in bottom right corner */}

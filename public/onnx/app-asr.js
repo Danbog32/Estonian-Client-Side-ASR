@@ -773,7 +773,7 @@ function handlePartialResult(result) {
 
     if (translationEnabled && result.trim()) {
       const currentWordCount = result.trim().split(/\s+/).length;
-      if (currentWordCount >= 8) {
+      if (currentWordCount >= 6) {
         const currentText = result.trim();
         let textToTranslate = "";
         if (!lastSentText) {
@@ -783,14 +783,14 @@ function handlePartialResult(result) {
           const newWordCount = newPart
             .split(/\s+/)
             .filter((w) => w.length > 0).length;
-          if (newWordCount >= 8) {
+          if (newWordCount >= 6) {
             textToTranslate = newPart;
           }
         } else {
           textToTranslate = currentText;
         }
         if (textToTranslate) {
-          sendTextToTranslationServer(textToTranslate, false);
+          sendTextToTranslationServer(textToTranslate, true);
           lastSentText = currentText;
         }
       }
