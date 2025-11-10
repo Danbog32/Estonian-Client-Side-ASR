@@ -26,11 +26,7 @@ const StartPrompt: React.FC<StartPromptProps> = () => {
   return (
     <>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div
-          className="flex flex-col items-center justify-center gap-4 
-             bg-gray-800/80 backdrop-blur-sm max-w-[85%] sm:max-w-[70%] md:max-w-[50%] lg:max-w-[40%] 
-             rounded-xl shadow-lg py-6 px-6 animate-fadeIn border border-gray-700"
-        >
+        <div className="flex flex-col items-center justify-center gap-4 bg-gray-800/80 backdrop-blur-sm max-w-[85%] sm:max-w-[70%] md:max-w-[50%] lg:max-w-[40%] rounded-xl shadow-lg py-6 px-6 animate-fadeIn border border-gray-700">
           <h1 className="text-2xl sm:text-4xl font-bold text-white animate-slideInDown text-center">
             {t.heading}
           </h1>
