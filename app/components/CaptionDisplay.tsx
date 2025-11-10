@@ -91,11 +91,12 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
         `}
       >
         <div className="flex items-start justify-between">
-          <time className="text-xs text-gray-400">
-            {new Date(block.timestamp).toLocaleTimeString([], {
+          <time className="text-xs text-gray-400" suppressHydrationWarning>
+            {new Date(block.timestamp).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
               second: "2-digit",
+              hour12: false,
             })}
           </time>
         </div>
