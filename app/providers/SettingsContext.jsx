@@ -56,7 +56,7 @@ export const SettingsProvider = ({ children }) => {
     } catch (_e) {
       // Ignore storage write errors (quota, privacy mode, etc.)
     }
-  }, [textSize, lineHeight, language]);
+  }, [textSize, lineHeight, language, hasRestoredFromStorage]);
 
   return (
     <SettingsContext.Provider

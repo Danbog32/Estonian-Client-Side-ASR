@@ -77,15 +77,15 @@ export default function Settings() {
           <span className="hidden sm:inline">{t.settings}</span>
         </Button>
       </div>
-      <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose}>
+      <Modal backdrop={backdrop} isOpen={isOpen} onClose={onClose} size="lg">
         <ModalContent className="bg-gray-800 text-white max-h-[90dvh] ">
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-white">
+              <ModalHeader className="flex flex-col gap-1 text-white py-2">
                 {t.settings}
               </ModalHeader>
               <ScrollShadow hideScrollBar className="flex-1">
-                <ModalBody className="text-gray-300 overflow-auto">
+                <ModalBody className="text-gray-300 overflow-auto sm:px-6 px-2">
                   <div className="flex flex-col gap-5 mb-4">
                     <TextSizeSlider />
                     <LineHeightSlider />
@@ -162,7 +162,7 @@ export default function Settings() {
                   </div>
                 </ModalBody>
               </ScrollShadow>
-              <ModalFooter>
+              <ModalFooter className="py-2">
                 <Button color="danger" variant="light" onPress={onClose}>
                   {t.close}
                 </Button>

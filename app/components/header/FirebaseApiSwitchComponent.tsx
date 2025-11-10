@@ -145,7 +145,7 @@ export default function FirebaseApiSwitchComponent() {
         onChange={(e) => setFirebaseEnabled(e.target.checked)}
         classNames={{
           base: cn(
-            "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
+            "inline-flex flex-row-reverse min-w-full bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
             "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
             "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
           ),
@@ -201,7 +201,7 @@ export default function FirebaseApiSwitchComponent() {
               )}
               <QRCode value={captionURL} size={180} />
               {copyMessage && (
-                <div className="absolute bottom-full mb-2 text-sm bg-black text-green-500 py-1 px-2 rounded-md text-sm">
+                <div className="absolute bottom-full mb-2 bg-black text-green-500 py-1 px-2 rounded-md text-sm">
                   {copyMessage}
                 </div>
               )}

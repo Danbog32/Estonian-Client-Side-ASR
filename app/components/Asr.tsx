@@ -6,25 +6,25 @@ import { useSettings } from "../providers/SettingsContext";
 import CaptionDisplay from "./CaptionDisplay";
 import GreetingLoading from "./GreetingLoading";
 
+// Translation strings for different languages
+const translations = {
+  en: {
+    heading: "Estonian Automatic Speech Recognition",
+    downloadingModel: "Downloading model, please wait...",
+    initializingModel: "Initializing ASR model, just a second...",
+  },
+  et: {
+    heading: "Eesti automaatne kõnetuvastus",
+    downloadingModel: "Laen mudelit, palun oodake...",
+    initializingModel: "Käivitab ASR-mudeli, hetk...",
+  },
+};
+
 export default function Asr() {
   const { textSize, lineHeight } = useSettings();
   const { language } = useSettings() as { language: "en" | "et" };
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("");
-
-  // Translation strings for different languages
-  const translations = {
-    en: {
-      heading: "Estonian Automatic Speech Recognition",
-      downloadingModel: "Downloading model, please wait...",
-      initializingModel: "Initializing ASR model, just a second...",
-    },
-    et: {
-      heading: "Eesti automaatne kõnetuvastus",
-      downloadingModel: "Laen mudelit, palun oodake...",
-      initializingModel: "Käivitab ASR-mudeli, hetk...",
-    },
-  };
 
   // Set the loading message based on the selected language
   useEffect(() => {

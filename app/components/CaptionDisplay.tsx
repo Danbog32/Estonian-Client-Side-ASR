@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useRef } from "react";
+import React, { useState, useEffect, memo, useRef, useCallback } from "react";
 import { ScrollShadow, Tooltip, Button } from "@heroui/react";
 import StartSpeakingPrompt from "./StartSpeakingPrompt";
 import { Icons } from "./icons";
@@ -90,29 +90,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
           ${index === totalBlocks - 1 ? "mb-0" : ""}
         `}
       >
-        <div className="flex items-start justify-between mb-2">
-          <div
-            className={`
-            inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-            ${
-              block.isComplete
-                ? "bg-green-900/50 text-green-300 border border-green-700/50"
-                : "bg-blue-900/50 text-blue-300 border border-blue-600/50"
-            }
-          `}
-          >
-            {block.isComplete ? (
-              <>
-                <Icons.check className="w-3 h-3 mr-1" />
-                {t.complete}
-              </>
-            ) : (
-              <>
-                <Icons.loader className="w-3 h-3 mr-1 animate-spin" />
-                {t.speaking}
-              </>
-            )}
-          </div>
+        <div className="flex items-start justify-between">
           <time className="text-xs text-gray-400">
             {new Date(block.timestamp).toLocaleTimeString([], {
               hour: "2-digit",
@@ -124,7 +102,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
         <div className="relative">
           <p
             className={`
-            text-white pr-8 sm:pr-12 leading-relaxed
+            text-white pr-8 sm:pr-12 leading-relaxed break-all
             ${!block.isComplete ? "text-blue-100" : ""}
           `}
             style={{
@@ -226,16 +204,19 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
     const t = translations[language];
 
     // Function to check if a scroll container is at the bottom
-    const isScrolledToBottom = (element: HTMLDivElement | null): boolean => {
-      if (!element) return true;
-      // Calculate threshold based on text size and line height
-      // Use 1.5 lines of text as the threshold for "close enough"
-      const threshold = Math.max(200, textSize * lineHeight * 100 * 1.5); // 24px is base font size
-      return (
-        element.scrollHeight - element.clientHeight - element.scrollTop <=
-        threshold
-      );
-    };
+    const isScrolledToBottom = useCallback(
+      (element: HTMLDivElement | null): boolean => {
+        if (!element) return true;
+        // Calculate threshold based on text size and line height
+        // Use 1.5 lines of text as the threshold for "close enough"
+        const threshold = Math.max(200, textSize * lineHeight * 100 * 1.5); // 24px is base font size
+        return (
+          element.scrollHeight - element.clientHeight - element.scrollTop <=
+          threshold
+        );
+      },
+      [textSize, lineHeight]
+    );
 
     // Function to scroll to bottom
     const scrollToBottom = (element: HTMLDivElement | null) => {
@@ -295,6 +276,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
       translationBlocks,
       isAutoScrollEnabled,
       translationEnabled,
+      isScrolledToBottom,
     ]);
 
     // Scroll to bottom button handler

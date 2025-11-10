@@ -102,7 +102,7 @@ export default function ZoomApiSwitchComponent() {
         onChange={(e) => handleToggle(e.target.checked)}
         classNames={{
           base: cn(
-            "inline-flex flex-row-reverse w-full max-w-md bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
+            "inline-flex flex-row-reverse min-w-full bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
             "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
             "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
           ),

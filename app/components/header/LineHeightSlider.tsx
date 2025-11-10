@@ -21,7 +21,7 @@ export default function LineHeightSlider() {
   const t = translations[language];
 
   return (
-    <div className="flex flex-col w-full max-w-md">
+    <div className="flex flex-col min-w-full">
       <Slider
         size="lg"
         label={
@@ -39,7 +39,6 @@ export default function LineHeightSlider() {
         maxValue={3}
         minValue={1}
         defaultValue={lineHeight}
-        className="max-w-md"
       />
     </div>
   );
