@@ -103,7 +103,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
         <div className="relative">
           <p
             className={`
-            text-white pr-8 sm:pr-12 leading-relaxed break-all
+            text-white pr-8 sm:pr-12 leading-relaxed break-all sm:break-normal
             ${!block.isComplete ? "text-blue-100" : ""}
           `}
             style={{
