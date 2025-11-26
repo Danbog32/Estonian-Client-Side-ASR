@@ -90,7 +90,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
           ${index === totalBlocks - 1 ? "mb-0" : ""}
         `}
       >
-        <div className="flex items-start justify-between">
+        {/* <div className="flex items-start justify-between">
           <time className="text-xs text-gray-400" suppressHydrationWarning>
             {new Date(block.timestamp).toLocaleTimeString("en-US", {
               hour: "2-digit",
@@ -99,7 +99,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
               hour12: false,
             })}
           </time>
-        </div>
+        </div> */}
         <div className="relative">
           <p
             className={`
@@ -574,7 +574,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                       key={block.id}
                       className="bg-green-900/20 border border-green-700/30 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4 shadow-sm transition-all duration-300 ease-in-out"
                     >
-                      <div className="flex items-start justify-between mb-2">
+                      {/* <div className="flex items-start justify-between mb-2">
                         <time className="text-xs text-gray-400">
                           {new Date(block.timestamp).toLocaleTimeString([], {
                             hour: "2-digit",
@@ -582,7 +582,7 @@ const CaptionDisplay: React.FC<CaptionDisplayProps> = memo(
                             second: "2-digit",
                           })}
                         </time>
-                      </div>
+                      </div> */}
                       <div className="relative">
                         <p
                           className="text-green-100 pr-8 sm:pr-12 leading-relaxed"
