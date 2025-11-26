@@ -711,8 +711,10 @@ function cleanText(text) {
     // Remove spaces before punctuation
     line = line.replace(/\s*([,.!?;:])/g, "$1");
 
-    // Remove leading punctuation
-    line = line.replace(/^[,.!?;:]+/, "");
+    // Don't remove leading punctuation - periods at start of segments are valid
+    // Only remove leading punctuation if it's not a period (which can start sentences)
+    // or if there are multiple punctuation marks
+    line = line.replace(/^[;:]+/, ""); // Remove leading punctuation except periods
 
     // Trim leading and trailing spaces
     return line.trim();
@@ -873,10 +875,19 @@ function handleFinalResult(finalText) {
       }
     }
 
-    updateResultList(lastResult);
-    prevSubList.push(lastResult);
+    // Disabled silence-based line breaking: accumulate text continuously instead of creating new blocks
+    // Append to the last block if it exists, otherwise create the first block
+    if (resultList.length > 0) {
+      // Append to the last completed block with a space
+      resultList[resultList.length - 1] += " " + lastResult;
+    } else {
+      // No blocks yet, create the first one
+      resultList.push(lastResult);
+      prevSubList.push(lastResult);
+    }
+    // Clear lastResult so new partial results can start fresh, but don't create a new block
     lastResult = "";
-    currentBlockId = null;
+    currentBlockId = null; // Reset current block ID so new partial results create a fresh incomplete block
     lastSentText = "";
   }
 
