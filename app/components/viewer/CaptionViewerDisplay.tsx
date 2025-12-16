@@ -79,7 +79,7 @@ export default function CaptionViewerDisplay({
     scrollToBottom: viewerScrollToBottom,
   } = useAutoScroll<HTMLDivElement>({
     content: viewerDisplay,
-    threshold: 50,
+    threshold: 400,
     buttonThreshold: 200,
     enabled: true,
   });

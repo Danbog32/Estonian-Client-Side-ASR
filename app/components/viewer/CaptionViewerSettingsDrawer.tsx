@@ -21,6 +21,7 @@ type Props = {
 };
 
 const colorPresets = [
+  // Light presets
   {
     key: "blackOnWhite",
     textColor: "#000000",
@@ -28,22 +29,23 @@ const colorPresets = [
     label: { en: "Black on white", et: "Must valgel" },
   },
   {
+    key: "darkBrownOnCream",
+    textColor: "#3E2723",
+    backgroundColor: "#FFF8E1",
+    label: { en: "Warm sepia", et: "Soe sepia" },
+  },
+  {
+    key: "darkBlueOnLightBlue",
+    textColor: "#0D47A1",
+    backgroundColor: "#E3F2FD",
+    label: { en: "Blue theme", et: "Sinine teema" },
+  },
+  // Dark presets
+  {
     key: "whiteOnBlack",
     textColor: "#FFFFFF",
     backgroundColor: "#000000",
     label: { en: "White on black", et: "Valge mustal" },
-  },
-  {
-    key: "yellowOnBlack",
-    textColor: "#F8E71C",
-    backgroundColor: "#000000",
-    label: { en: "Yellow on black", et: "Kollane mustal" },
-  },
-  {
-    key: "cyanOnDark",
-    textColor: "#50E3C2",
-    backgroundColor: "#0B0B0B",
-    label: { en: "Cyan on dark", et: "Tsüaan tumedal" },
   },
   {
     key: "amberOnCharcoal",
@@ -218,20 +220,20 @@ export default function CaptionViewerSettingsDrawer({
                   {t.subtitle}
                 </span>
               </div>
-              <button
+              {/* <button
                 type="button"
                 className="w-9 h-9 grid place-items-center rounded-[10px] text-white/70 transition-all duration-200 bg-transparent border border-transparent hover:bg-white/8 hover:text-white/95 focus-visible:outline-2 focus-visible:outline-[rgba(95,163,255,0.9)] focus-visible:outline-offset-2"
                 onClick={onClose}
                 aria-label={t.close}
               >
                 <Icons.close className="w-5 h-5" />
-              </button>
+              </button> */}
             </DrawerHeader>
 
             <DrawerBody className="p-6 overflow-y-auto flex flex-col gap-0 md:p-5">
               <section className="flex flex-col gap-[1.125rem] pb-6 md:pb-5">
-                <div className="flex gap-3.5 items-start">
-                  <div className="w-[42px] h-[42px] rounded-[14px] grid place-items-center bg-white/4 border border-white/8 flex-shrink-0">
+                <div className="flex gap-2.5 items-start">
+                  <div className="grid place-items-center flex-shrink-0">
                     <Icons.textSelect className="w-[22px] h-[22px] opacity-90" />
                   </div>
                   <div>
@@ -250,14 +252,11 @@ export default function CaptionViewerSettingsDrawer({
                     label={
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <Icons.type className="w-4 h-4 opacity-70 text-white/70 flex-shrink-0" />
+                          <Icons.type className="w-6 h-6 opacity-70 text-white/70 flex-shrink-0" />
                           <span className="text-sm font-[550] text-white/75 tracking-[-0.005em]">
                             {t.fontSize}
                           </span>
                         </div>
-                        <span className="text-[0.8125rem] font-semibold bg-[rgba(74,144,226,0.15)] text-[#5fa3ff] px-2.5 py-1 rounded-lg border border-[rgba(74,144,226,0.25)]">
-                          {Math.round(settings.fontSizePx)}px
-                        </span>
                       </div>
                     }
                     step={1}
@@ -276,14 +275,13 @@ export default function CaptionViewerSettingsDrawer({
                     label={
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <Icons.gripVertical className="w-4 h-4 opacity-70 text-white/70 flex-shrink-0" />
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <Icons.type className="w-6 h-6 opacity-70 text-white/70 flex-shrink-0 border-y-1 border-white/70" />
+                          </div>
                           <span className="text-sm font-[550] text-white/75 tracking-[-0.005em]">
                             {t.lineHeight}
                           </span>
                         </div>
-                        <span className="text-[0.8125rem] font-semibold bg-[rgba(74,144,226,0.15)] text-[#5fa3ff] px-2.5 py-1 rounded-lg border border-[rgba(74,144,226,0.25)]">
-                          {settings.lineHeight.toFixed(2)}
-                        </span>
                       </div>
                     }
                     step={0.05}
@@ -302,14 +300,13 @@ export default function CaptionViewerSettingsDrawer({
                     label={
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <Icons.wholeWord className="w-4 h-4 opacity-70 text-white/70 flex-shrink-0" />
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Icons.type className="w-6 h-6 opacity-70 text-white/70 flex-shrink-0 border-x-1 border-white/70" />
+                          </div>
                           <span className="text-sm font-[550] text-white/75 tracking-[-0.005em]">
                             {t.letterSpacing}
                           </span>
                         </div>
-                        <span className="text-[0.8125rem] font-semibold bg-[rgba(74,144,226,0.15)] text-[#5fa3ff] px-2.5 py-1 rounded-lg border border-[rgba(74,144,226,0.25)]">
-                          {settings.letterSpacingEm.toFixed(3)}em
-                        </span>
                       </div>
                     }
                     step={0.005}
@@ -324,12 +321,12 @@ export default function CaptionViewerSettingsDrawer({
                   />
 
                   <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       {fontWeightOptions.map((option) => (
                         <button
                           key={option.value}
                           type="button"
-                          className={`flex flex-col items-start px-4 py-3.5 rounded-xl border-[1.5px] transition-all duration-[250ms] cursor-pointer text-left ${
+                          className={`flex flex-col items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-[14px] border-[1.5px] transition-all duration-[250ms] cursor-pointer min-h-[75px] ${
                             settings.fontWeight === option.value
                               ? "border-[rgba(74,144,226,0.95)] bg-gradient-to-br from-[rgba(74,144,226,0.15)] to-[rgba(74,144,226,0.08)] shadow-[0_0_0_1px_rgba(74,144,226,0.2)]"
                               : "border-white/10 bg-white/[0.02] hover:border-[rgba(74,144,226,0.4)] hover:bg-white/[0.05] hover:-translate-y-px"
@@ -339,17 +336,26 @@ export default function CaptionViewerSettingsDrawer({
                             onChange({ ...settings, fontWeight: option.value })
                           }
                         >
-                          {option.value === 400 ? (
-                            <span>Aa</span>
-                          ) : (
-                            <span className="font-bold">Aa</span>
-                          )}
-                          <span className="text-[0.95rem] font-[650] text-white/95">
-                            {option.label}
-                          </span>
-                          <span className="text-[0.78rem] text-white/50 mt-0.5">
-                            {option.description}
-                          </span>
+                          <div
+                            className={`text-xl text-white/95 transition-transform duration-200 ${
+                              settings.fontWeight === option.value
+                                ? "scale-110"
+                                : ""
+                            }`}
+                            style={{ fontWeight: option.value }}
+                          >
+                            Aa
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span
+                              className="text-[0.85rem] text-white/95"
+                              style={{
+                                fontWeight: option.value === 400 ? 400 : 600,
+                              }}
+                            >
+                              {option.label}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -360,8 +366,8 @@ export default function CaptionViewerSettingsDrawer({
               <div className="h-px bg-gradient-to-r from-transparent via-white/8 [20%] via-white/8 [80%] to-transparent" />
 
               <section className="flex flex-col gap-[1.125rem] pb-6 md:pb-5">
-                <div className="flex gap-3.5 items-start">
-                  <div className="w-[42px] h-[42px] rounded-[14px] grid place-items-center bg-white/4 border border-white/8 flex-shrink-0">
+                <div className="flex gap-2.5 items-start">
+                  <div className="grid place-items-center flex-shrink-0">
                     <Icons.palette className="w-[22px] h-[22px] opacity-90" />
                   </div>
                   <div>
@@ -429,16 +435,16 @@ export default function CaptionViewerSettingsDrawer({
                     </label>
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <div className="text-sm font-[550] text-white/75 tracking-[-0.005em]">
                       {t.presets}
                     </div>
-                    <div className="grid grid-cols-3 gap-3 md:grid-cols-2">
+                    <div className="grid grid-cols-3 gap-3">
                       {colorPresets.map((preset) => (
                         <button
                           key={preset.key}
                           type="button"
-                          className="flex flex-col gap-2 p-0 border-[1.5px] border-white/10 rounded-[14px] bg-white/[0.02] transition-all duration-[250ms] cursor-pointer overflow-hidden hover:border-[rgba(74,144,226,0.4)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
+                          className="flex flex-col gap-1.5 p-0 border-[1.5px] border-white/10 rounded-[14px] bg-white/[0.03] transition-all duration-[250ms] cursor-pointer overflow-hidden hover:border-[rgba(74,144,226,0.4)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
                           onClick={() =>
                             onChange({
                               ...settings,
@@ -449,7 +455,7 @@ export default function CaptionViewerSettingsDrawer({
                           aria-label={preset.label[language] ?? preset.label.en}
                         >
                           <div
-                            className="w-full h-[70px] grid place-items-center text-[2.1rem] font-[750] transition-all duration-200 hover:scale-[1.03]"
+                            className="w-full h-[58px] grid place-items-center text-[1.75rem] font-[750] transition-all duration-200 hover:scale-[1.03]"
                             style={{
                               backgroundColor: preset.backgroundColor,
                               color: preset.textColor,
@@ -457,7 +463,7 @@ export default function CaptionViewerSettingsDrawer({
                           >
                             Aa
                           </div>
-                          <div className="text-[0.9rem] text-white/80 text-center py-[0.65rem] px-2.5 pb-3.5 font-[650] bg-white/[0.03]">
+                          <div className="text-[0.85rem] text-white/80 text-center py-[0.5rem] px-2 pb-2.5 font-[650]">
                             {preset.label[language] ?? preset.label.en}
                           </div>
                         </button>
@@ -470,8 +476,8 @@ export default function CaptionViewerSettingsDrawer({
               <div className="h-px bg-gradient-to-r from-transparent via-white/8 [20%] via-white/8 [80%] to-transparent" />
 
               <section className="flex flex-col gap-[1.125rem] pb-6 md:pb-5">
-                <div className="flex gap-3.5 items-start">
-                  <div className="w-[42px] h-[42px] rounded-[14px] grid place-items-center bg-white/4 border border-white/8 flex-shrink-0">
+                <div className="flex gap-2.5 items-start">
+                  <div className="grid place-items-center flex-shrink-0">
                     <Icons.cog className="w-[22px] h-[22px] opacity-90" />
                   </div>
                   <div>
@@ -485,7 +491,7 @@ export default function CaptionViewerSettingsDrawer({
                 </div>
 
                 <div className="flex flex-col gap-5">
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <div className="text-sm font-[550] text-white/75 tracking-[-0.005em]">
                       {t.alignment}
                     </div>
@@ -494,7 +500,7 @@ export default function CaptionViewerSettingsDrawer({
                         <button
                           key={option.value}
                           type="button"
-                          className={`flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-[14px] border-[1.5px] transition-all duration-[250ms] cursor-pointer min-h-[98px] md:min-h-[80px] ${
+                          className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2.5 rounded-[14px] border-[1.5px] transition-all duration-[250ms] cursor-pointer min-h-[85px] md:min-h-[70px] ${
                             settings.horizontalAlignment === option.value
                               ? "border-[rgba(74,144,226,0.95)] bg-gradient-to-br from-[rgba(74,144,226,0.15)] to-[rgba(74,144,226,0.08)] shadow-[0_0_0_1px_rgba(74,144,226,0.2)]"
                               : "border-white/10 bg-white/[0.02] hover:border-[rgba(74,144,226,0.4)] hover:bg-white/[0.05] hover:-translate-y-px"
@@ -509,12 +515,9 @@ export default function CaptionViewerSettingsDrawer({
                             })
                           }
                         >
-                          <option.Icon className="w-6 h-6 opacity-95" />
-                          <div className="text-[0.95rem] font-bold text-center text-white/95">
+                          <option.Icon className="w-5 h-5 opacity-95" />
+                          <div className="text-xs text-center text-white/65">
                             {option.label}
-                          </div>
-                          <div className="text-[0.78rem] text-center text-white/50">
-                            {option.description}
                           </div>
                         </button>
                       ))}
