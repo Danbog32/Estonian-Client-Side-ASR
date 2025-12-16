@@ -18,6 +18,17 @@ import {
   PanelTop,
   ArrowDown,
   Link,
+  Palette,
+  Cog,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  ArrowLeftRight,
+  RotateCcw,
+  Captions,
+  FileText,
+  Type,
+  GripVertical,
 } from "lucide-react";
 
 export const Icons = {
@@ -40,4 +51,15 @@ export const Icons = {
   panelTop: PanelTop,
   arrowDown: ArrowDown,
   link: Link,
+  palette: Palette,
+  cog: Cog,
+  alignLeft: AlignLeft,
+  alignCenter: AlignCenter,
+  alignRight: AlignRight,
+  arrowLeftRight: ArrowLeftRight,
+  rotateCcw: RotateCcw,
+  captions: Captions,
+  fileText: FileText,
+  type: Type,
+  gripVertical: GripVertical,
 };
