@@ -20,6 +20,16 @@ interface UseAutoScrollOptions {
    * Default: true
    */
   enabled?: boolean;
+  /**
+   * Scroll behavior used when autoscrolling due to new content.
+   * Default: "auto"
+   */
+  autoBehavior?: ScrollBehavior;
+  /**
+   * Scroll behavior used when user clicks the scroll-to-bottom button.
+   * Default: "smooth"
+   */
+  manualBehavior?: ScrollBehavior;
 }
 
 /**
@@ -33,6 +43,8 @@ export function useAutoScroll<T extends HTMLElement>({
   threshold = 50,
   buttonThreshold = 200,
   enabled = true,
+  autoBehavior = "auto",
+  manualBehavior = "smooth",
 }: UseAutoScrollOptions) {
   const scrollRef = useRef<T | null>(null);
   const isUserScrollingRef = useRef(false);
@@ -65,15 +77,19 @@ export function useAutoScroll<T extends HTMLElement>({
   /**
    * Scroll to bottom smoothly
    */
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottomWithBehavior = useCallback((behavior: ScrollBehavior) => {
     const element = scrollRef.current;
     if (!element) return;
 
     element.scrollTo({
       top: element.scrollHeight,
-      behavior: "smooth",
+      behavior,
     });
   }, []);
+
+  const scrollToBottom = useCallback(() => {
+    scrollToBottomWithBehavior(manualBehavior);
+  }, [manualBehavior, scrollToBottomWithBehavior]);
 
   /**
    * Handle scroll events to detect user interaction
@@ -117,13 +133,27 @@ export function useAutoScroll<T extends HTMLElement>({
     const element = scrollRef.current;
     if (!element) return;
 
+    // Re-check proximity on each content update to support "near bottom" behavior.
+    // This handles cases where user didn't trigger a recent scroll event.
+    if (isNearBottom(element)) {
+      shouldAutoScrollRef.current = true;
+    }
+
     // Only autoscroll if:
     // 1. User is not actively scrolling
     // 2. User is near the bottom (or explicitly wants to autoscroll)
     if (!isUserScrollingRef.current && shouldAutoScrollRef.current) {
-      scrollToBottom();
+      scrollToBottomWithBehavior(autoBehavior);
+
+      // Run a second pass on the next frame to account for late layout changes
+      // (font rendering / wrapping / container resize) in live caption streams.
+      const rafId = window.requestAnimationFrame(() => {
+        scrollToBottomWithBehavior(autoBehavior);
+      });
+
+      return () => window.cancelAnimationFrame(rafId);
     }
-  }, [content, enabled, scrollToBottom]);
+  }, [autoBehavior, content, enabled, isNearBottom, scrollToBottomWithBehavior]);
 
   /**
    * Set up scroll event listener
@@ -133,6 +163,8 @@ export function useAutoScroll<T extends HTMLElement>({
     if (!element) return;
 
     element.addEventListener("scroll", handleScroll, { passive: true });
+    // Initialize state for the current scroll position.
+    handleScroll();
 
     return () => {
       element.removeEventListener("scroll", handleScroll);
@@ -140,7 +172,7 @@ export function useAutoScroll<T extends HTMLElement>({
         clearTimeout(userScrollTimeoutRef.current);
       }
     };
-  }, [handleScroll]);
+  }, [enabled, handleScroll]);
 
   /**
    * Initialize: assume we want to autoscroll at start
