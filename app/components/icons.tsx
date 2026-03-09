@@ -29,6 +29,7 @@ import {
   FileText,
   Type,
   GripVertical,
+  EllipsisVertical,
 } from "lucide-react";
 
 export const Icons = {
@@ -62,4 +63,5 @@ export const Icons = {
   fileText: FileText,
   type: Type,
   gripVertical: GripVertical,
+  ellipsisVertical: EllipsisVertical,
 };

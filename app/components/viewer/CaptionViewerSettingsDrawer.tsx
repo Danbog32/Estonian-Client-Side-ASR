@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Drawer,
   DrawerBody,
@@ -18,6 +18,7 @@ type Props = {
   settings: CaptionViewerSettings;
   onChange: (next: CaptionViewerSettings) => void;
   onReset: () => void;
+  extraSections?: ReactNode;
 };
 
 const colorPresets = [
@@ -67,6 +68,7 @@ export default function CaptionViewerSettingsDrawer({
   settings,
   onChange,
   onReset,
+  extraSections,
 }: Props) {
   const { language } = useSettings() as { language: "en" | "et" };
   const [isMobile, setIsMobile] = useState(false);
@@ -524,6 +526,13 @@ export default function CaptionViewerSettingsDrawer({
                     </div>
                   </div>
                 </div>
+
+                {extraSections && (
+                  <>
+                    <div className="h-px bg-gradient-to-r from-transparent via-white/8 [20%] via-white/8 [80%] to-transparent my-2" />
+                    {extraSections}
+                  </>
+                )}
 
                 <button
                   type="button"
