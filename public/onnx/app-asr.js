@@ -27,6 +27,8 @@ const maxWords = 24; // Maximum number of words to display
 const minSentenceLength = 8; // Minimum words in a sentence before it is considered complete
 const VAD_END_GRACE_MS = 220;
 const SPLIT_SUFFIX_FRAGMENT_RE = /^([bcdfghjklmnpqrstvwxyzšž])(?:\s+|$)([\s\S]*)$/;
+let lastRenderedTranscriptText = "";
+let lastTranscriptBlocksSignature = "[]";
 
 // Variables for API settings
 let apiToken = ""; // Store API token from the settings
@@ -586,6 +588,8 @@ function resetTranscriptState() {
   partialTranslationUtteranceId = null;
   sentTranslations.clear();
   window.transcriptBlocks = [];
+  lastRenderedTranscriptText = "";
+  lastTranscriptBlocksSignature = "[]";
 }
 
 function refreshCompletedTextList() {
@@ -889,6 +893,33 @@ function getCombinedTranscriptText() {
   return [completedText, activeText].filter(Boolean).join(" ").trim();
 }
 
+function updateTranscriptElementText(nextText) {
+  const text = typeof nextText === "string" ? nextText : "";
+  if (!transcriptElement || lastRenderedTranscriptText === text) {
+    return false;
+  }
+
+  transcriptElement.textContent = text;
+  lastRenderedTranscriptText = text;
+  return true;
+}
+
+function dispatchTranscriptUpdateIfChanged(blocks) {
+  const safeBlocks = Array.isArray(blocks) ? blocks : [];
+  const nextSignature = JSON.stringify(safeBlocks);
+  if (lastTranscriptBlocksSignature === nextSignature) {
+    return false;
+  }
+
+  lastTranscriptBlocksSignature = nextSignature;
+  window.dispatchEvent(
+    new CustomEvent("transcriptUpdate", {
+      detail: { blocks: safeBlocks },
+    })
+  );
+  return true;
+}
+
 function renderTranscript() {
   const isScrolledToBottom =
     transcriptElement.scrollHeight - transcriptElement.clientHeight <=
@@ -896,16 +927,13 @@ function renderTranscript() {
 
   if (transcriptElement) {
     if (subtitleMode) {
-      transcriptElement.innerText = cleanText(
+      updateTranscriptElementText(
         getLastNWords(getCombinedTranscriptText(), maxWords)
       );
     } else {
       const result = getDisplayResult();
-      transcriptElement.innerText = result.displayText;
-      const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
-        detail: { blocks: window.transcriptBlocks },
-      });
-      window.dispatchEvent(transcriptUpdateEvt);
+      updateTranscriptElementText(result.displayText);
+      dispatchTranscriptUpdateIfChanged(window.transcriptBlocks);
     }
   }
 
