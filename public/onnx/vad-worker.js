@@ -1,14 +1,11 @@
 // VAD worker: runs sherpa-onnx Silero VAD off the main thread.
 
-self.Module = self.Module || {};
-const Module = self.Module;
-
-Module.locateFile = function (path) {
-  return "/onnx/" + path;
+const runtimeState = {
+  bootstrapped: false,
+  loading: false,
+  ready: false,
+  readyPromise: null,
 };
-
-importScripts("/onnx/sherpa-onnx-vad.js");
-importScripts("/onnx/sherpa-onnx-wasm-main-vad.js");
 
 let vad = null;
 let paused = false;
@@ -36,6 +33,72 @@ let config = {
   debug: 0,
   bufferSizeInSeconds: 30,
 };
+let initRequested = false;
+let initNotified = false;
+
+function getModule() {
+  self.Module = self.Module || {};
+  return self.Module;
+}
+
+function postInitError(error) {
+  self.postMessage({
+    type: "error",
+    stage: "init",
+    error: String(error),
+  });
+}
+
+function bootstrapRuntimeOnce() {
+  if (runtimeState.readyPromise) {
+    return runtimeState.readyPromise;
+  }
+
+  runtimeState.loading = true;
+  runtimeState.readyPromise = new Promise((resolve, reject) => {
+    const module = getModule();
+    const previousOnRuntimeInitialized = module.onRuntimeInitialized;
+
+    module.locateFile = function (path) {
+      return "/onnx/" + path;
+    };
+
+    module.onRuntimeInitialized = function () {
+      runtimeState.ready = true;
+      runtimeState.loading = false;
+      if (typeof previousOnRuntimeInitialized === "function") {
+        previousOnRuntimeInitialized();
+      }
+      resolve(module);
+      maybeInitializeVad();
+    };
+
+    try {
+      if (!runtimeState.bootstrapped) {
+        runtimeState.bootstrapped = true;
+        importScripts("/onnx/sherpa-onnx-vad.js");
+        importScripts("/onnx/sherpa-onnx-wasm-main-vad.js");
+      } else if (runtimeState.ready) {
+        resolve(module);
+      }
+    } catch (error) {
+      runtimeState.loading = false;
+      reject(error);
+    }
+  });
+
+  return runtimeState.readyPromise;
+}
+
+function freeVad() {
+  try {
+    vad?.free?.();
+  } catch (_) {
+    // Ignore teardown failures.
+  }
+  vad = null;
+  speechActive = false;
+}
 
 function drainSegments() {
   if (!vad) {
@@ -70,18 +133,21 @@ function processSamples(samples) {
   drainSegments();
 }
 
-Module.onRuntimeInitialized = function () {
+function maybeInitializeVad() {
+  if (!runtimeState.ready || !initRequested || initNotified) {
+    return;
+  }
+
   try {
-    vad = createVad(Module, config);
+    const module = getModule();
+    freeVad();
+    vad = createVad(module, config);
+    initNotified = true;
     self.postMessage({ type: "initialized" });
   } catch (e) {
-    self.postMessage({
-      type: "error",
-      stage: "init",
-      error: String(e),
-    });
+    postInitError(e);
   }
-};
+}
 
 self.onmessage = function (e) {
   const msg = e.data || {};
@@ -102,6 +168,10 @@ self.onmessage = function (e) {
           },
         };
       }
+      initRequested = true;
+      initNotified = false;
+      bootstrapRuntimeOnce().then(maybeInitializeVad).catch(postInitError);
+      maybeInitializeVad();
       break;
     }
     case "pause": {
@@ -139,13 +209,8 @@ self.onmessage = function (e) {
       break;
     }
     case "free": {
-      try {
-        vad?.free?.();
-      } catch (_) {
-        // Ignore teardown failures.
-      }
-      vad = null;
-      speechActive = false;
+      initNotified = false;
+      freeVad();
       break;
     }
   }

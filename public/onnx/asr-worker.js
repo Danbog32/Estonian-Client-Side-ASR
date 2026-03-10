@@ -1,14 +1,11 @@
 // ASR worker: runs sherpa-onnx recognizer off the main thread.
 
-self.Module = self.Module || {};
-const Module = self.Module;
-
-Module.locateFile = function (path) {
-  return "/onnx/" + path;
+const runtimeState = {
+  bootstrapped: false,
+  loading: false,
+  ready: false,
+  readyPromise: null,
 };
-
-importScripts("/onnx/sherpa-onnx-asr.js");
-importScripts("/onnx/sherpa-onnx-wasm-main-asr-v2.js");
 
 let recognizer = null;
 let recognizerStream = null;
@@ -26,6 +23,62 @@ let ringCtrl = null;
 let ringCapacity = 0;
 const IDX_WRITE = 0;
 const IDX_READ = 1;
+let initRequested = false;
+let initNotified = false;
+
+function getModule() {
+  self.Module = self.Module || {};
+  return self.Module;
+}
+
+function postInitError(error) {
+  self.postMessage({
+    type: "error",
+    stage: "init",
+    error: String(error),
+  });
+}
+
+function bootstrapRuntimeOnce() {
+  if (runtimeState.readyPromise) {
+    return runtimeState.readyPromise;
+  }
+
+  runtimeState.loading = true;
+  runtimeState.readyPromise = new Promise((resolve, reject) => {
+    const module = getModule();
+    const previousOnRuntimeInitialized = module.onRuntimeInitialized;
+
+    module.locateFile = function (path) {
+      return "/onnx/" + path;
+    };
+
+    module.onRuntimeInitialized = function () {
+      runtimeState.ready = true;
+      runtimeState.loading = false;
+      if (typeof previousOnRuntimeInitialized === "function") {
+        previousOnRuntimeInitialized();
+      }
+      resolve(module);
+      maybeInitializeRecognizer();
+    };
+
+    try {
+      if (!runtimeState.bootstrapped) {
+        runtimeState.bootstrapped = true;
+        importScripts("/onnx/sherpa-onnx-asr.js");
+        importScripts("/onnx/sherpa-onnx-wasm-main-asr-v2.js");
+      } else if (runtimeState.ready) {
+        resolve(module);
+      }
+    } catch (error) {
+      runtimeState.loading = false;
+      reject(error);
+    }
+  });
+
+  return runtimeState.readyPromise;
+}
 
 function buildRecognizerConfig(mode) {
   return {
@@ -81,6 +134,22 @@ function ensureRecognizerStream() {
   }
 
   return recognizerStream;
+}
+
+function freeRecognizer() {
+  try {
+    recognizerStream?.free?.();
+  } catch (_) {
+    // Ignore stream teardown errors.
+  }
+  recognizerStream = null;
+
+  try {
+    recognizer?.free?.();
+  } catch (_) {
+    // Ignore recognizer teardown errors.
+  }
+  recognizer = null;
 }
 
 function resetStreamState() {
@@ -228,18 +297,24 @@ function processSamples(samples) {
   }
 }
 
-Module.onRuntimeInitialized = function () {
+function maybeInitializeRecognizer() {
+  if (!runtimeState.ready || !initRequested || initNotified) {
+    return;
+  }
+
   try {
-    recognizer = createOnlineRecognizer(Module, buildRecognizerConfig(segmentationMode));
+    const module = getModule();
+    freeRecognizer();
+    recognizer = createOnlineRecognizer(
+      module,
+      buildRecognizerConfig(segmentationMode)
+    );
+    initNotified = true;
     self.postMessage({ type: "initialized", mode: segmentationMode });
   } catch (e) {
-    self.postMessage({
-      type: "error",
-      stage: "init",
-      error: String(e),
-    });
+    postInitError(e);
   }
-};
+}
 
 self.onmessage = function (e) {
   const msg = e.data || {};
@@ -253,6 +328,10 @@ self.onmessage = function (e) {
       if (msg.mode === "legacy" || msg.mode === "vad") {
         segmentationMode = msg.mode;
       }
+      initRequested = true;
+      initNotified = false;
+      bootstrapRuntimeOnce().then(maybeInitializeRecognizer).catch(postInitError);
+      maybeInitializeRecognizer();
       break;
     }
     case "pause": {
@@ -314,19 +393,8 @@ self.onmessage = function (e) {
       break;
     }
     case "free": {
-      try {
-        recognizerStream?.free?.();
-      } catch (_) {
-        // Ignore stream teardown errors.
-      }
-      recognizerStream = null;
-
-      try {
-        recognizer?.free?.();
-      } catch (_) {
-        // Ignore recognizer teardown errors.
-      }
-      recognizer = null;
+      initNotified = false;
+      freeRecognizer();
       break;
     }
   }
