@@ -3,7 +3,7 @@ import { Icons } from "../icons";
 import { useSettings } from "../../providers/SettingsContext";
 
 export default function TextSizeSlider() {
-  const { textSize, setTextSize, language } = useSettings();
+  const { fontSizePx, setFontSizePx, language } = useSettings();
 
   const translations = {
     en: {
@@ -26,14 +26,14 @@ export default function TextSizeSlider() {
             {t.textSize}
           </div>
         }
-        step={0.5}
+        step={2}
         color="primary"
         showSteps={true}
-        maxValue={8}
-        minValue={1}
-        defaultValue={textSize}
+        maxValue={96}
+        minValue={16}
+        defaultValue={fontSizePx}
         onChange={(value) =>
-          setTextSize(Array.isArray(value) ? value[0] : value)
+          setFontSizePx(Array.isArray(value) ? value[0] : value)
         }
       />
     </div>

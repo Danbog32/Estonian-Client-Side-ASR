@@ -23,8 +23,8 @@ export default function SettingsDrawer({
   onClose,
 }: SettingsDrawerProps) {
   const {
-    textSize,
-    setTextSize,
+    fontSizePx,
+    setFontSizePx,
     lineHeight,
     setLineHeight,
     textColor,
@@ -114,23 +114,23 @@ export default function SettingsDrawer({
           <SettingsSliderField
             icon={Icons.type}
             label={t.fontSize}
-            valueLabel={`${textSize}rem`}
-            minValue={1}
-            maxValue={8}
-            step={0.5}
-            value={textSize}
-            onChange={setTextSize}
-            minLabel="1"
-            maxLabel="8"
+            valueLabel={`${fontSizePx}px`}
+            minValue={16}
+            maxValue={96}
+            step={2}
+            value={fontSizePx}
+            onChange={setFontSizePx}
+            minLabel="16"
+            maxLabel="96"
           />
 
           <SettingsSliderField
             icon={Icons.gripVertical}
             label={t.lineHeight}
-            valueLabel={`${lineHeight}`}
+            valueLabel={lineHeight.toFixed(2)}
             minValue={1}
             maxValue={3}
-            step={0.2}
+            step={0.05}
             value={lineHeight}
             onChange={setLineHeight}
             minLabel="1"

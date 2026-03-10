@@ -36,7 +36,7 @@ export default function CaptionDisplay({
   onScrollStateChange,
   scrollToBottomRef,
 }: CaptionDisplayProps) {
-  const { textSize, lineHeight, textColor } = useSettings();
+  const { fontSizePx, lineHeight, textColor } = useSettings();
 
   const [transcriptBlocks, setTranscriptBlocks] = useState<TranscriptBlock[]>(
     [],
@@ -118,7 +118,7 @@ export default function CaptionDisplay({
                   className={`pr-10 break-words select-text transition-opacity ${
                     isRecording && !isLatest ? "opacity-70" : ""
                   }`}
-                  style={{ fontSize: `${textSize}rem`, lineHeight }}
+                  style={{ fontSize: `${fontSizePx}px`, lineHeight }}
                 >
                   {text}
                 </p>

@@ -10,8 +10,8 @@ import React, {
 import { SHARED_COLOR_PRESETS } from "../components/settings/sharedColorPresets";
 
 export interface SettingsContextValue {
-  textSize: number;
-  setTextSize: (value: number) => void;
+  fontSizePx: number;
+  setFontSizePx: (value: number) => void;
   lineHeight: number;
   setLineHeight: (value: number) => void;
   subtitleMode: boolean;
@@ -53,7 +53,7 @@ export const COLOR_PRESETS = SHARED_COLOR_PRESETS.map((preset) => ({
 }));
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [textSize, setTextSize] = useState(3);
+  const [fontSizePx, setFontSizePx] = useState(64);
   const [lineHeight, setLineHeight] = useState(1.4);
   const [subtitleMode, setSubtitleMode] = useState(false);
   const [textColor, setTextColor] = useState("#FFFFFF");
@@ -67,24 +67,35 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguage] = useState<"en" | "et">("et");
   const [translationEnabled, setTranslationEnabled] = useState(false);
 
-  const SETTINGS_STORAGE_KEY = "settings:v2";
+  const SETTINGS_STORAGE_KEY = "settings:v3";
   const [hasRestoredFromStorage, setHasRestoredFromStorage] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
       if (!raw) {
+        const v2Raw = localStorage.getItem("settings:v2");
         const v1Raw = localStorage.getItem("settings:v1");
-        if (v1Raw) {
-          const v1 = JSON.parse(v1Raw);
-          if (typeof v1.textSize === "number") setTextSize(v1.textSize);
-          if (typeof v1.lineHeight === "number") setLineHeight(v1.lineHeight);
-          if (typeof v1.language === "string") setLanguage(v1.language);
+        const rawToUse = v2Raw ?? v1Raw;
+        if (rawToUse) {
+          const saved = JSON.parse(rawToUse);
+          if (typeof saved.fontSizePx === "number") {
+            setFontSizePx(saved.fontSizePx);
+          } else if (typeof saved.textSize === "number") {
+            setFontSizePx(Math.round(saved.textSize * 16));
+          }
+          if (typeof saved.lineHeight === "number") setLineHeight(saved.lineHeight);
+          if (typeof saved.language === "string") setLanguage(saved.language);
+          if (typeof saved.textColor === "string") setTextColor(saved.textColor);
+          if (typeof saved.backgroundColor === "string")
+            setBackgroundColor(saved.backgroundColor);
         }
         return;
       }
       const saved = JSON.parse(raw);
-      if (typeof saved.textSize === "number") setTextSize(saved.textSize);
+      if (typeof saved.fontSizePx === "number") setFontSizePx(saved.fontSizePx);
+      else if (typeof saved.textSize === "number")
+        setFontSizePx(Math.round(saved.textSize * 16));
       if (typeof saved.lineHeight === "number") setLineHeight(saved.lineHeight);
       if (typeof saved.language === "string") setLanguage(saved.language);
       if (typeof saved.textColor === "string") setTextColor(saved.textColor);
@@ -103,7 +114,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(
         SETTINGS_STORAGE_KEY,
         JSON.stringify({
-          textSize,
+          fontSizePx,
           lineHeight,
           language,
           textColor,
@@ -114,7 +125,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     }
   }, [
-    textSize,
+    fontSizePx,
     lineHeight,
     language,
     textColor,
@@ -125,8 +136,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   return (
     <SettingsContext.Provider
       value={{
-        textSize,
-        setTextSize,
+        fontSizePx,
+        setFontSizePx,
         lineHeight,
         setLineHeight,
         subtitleMode,

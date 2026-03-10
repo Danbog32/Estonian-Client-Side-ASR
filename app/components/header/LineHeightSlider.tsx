@@ -29,7 +29,7 @@ export default function LineHeightSlider() {
         onChange={(value) =>
           setLineHeight(Array.isArray(value) ? value[0] : value)
         }
-        step={0.2}
+        step={0.05}
         color="primary"
         showSteps={true}
         maxValue={3}

@@ -7,17 +7,9 @@ import { Popover, PopoverTrigger, PopoverContent, Button } from "@heroui/react";
 import { Icons } from "./icons"; // Adjust the path as necessary
 import { useSettings } from "../providers/SettingsContext"; // Adjust the path as necessary
 
-interface TextAreaDisplayProps {
-  textSize: number;
-  lineHeight: number;
-}
-
-const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
-  textSize,
-  lineHeight,
-}) => {
+export default function TextAreaDisplay() {
   const [popoverVisible, setPopoverVisible] = useState(false);
-  const { language } = useSettings();
+  const { fontSizePx, lineHeight, language } = useSettings();
 
   // Translations for different languages
   const translations = {
@@ -65,7 +57,7 @@ const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
         className="w-full p-2 border rounded bg-gray-700 text-white font-mono h-full custom-scrollbar"
         style={{
           resize: "vertical",
-          fontSize: `${textSize}rem`,
+          fontSize: `${fontSizePx}px`,
           lineHeight: lineHeight,
           height: "400px", // fixed height
         }}
@@ -95,6 +87,4 @@ const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
       </Popover>
     </div>
   );
-};
-
-export default TextAreaDisplay;
+}
