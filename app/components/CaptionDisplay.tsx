@@ -100,7 +100,7 @@ export default function CaptionDisplay({
 
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pt-16 pb-28 sm:px-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pt-16 pb-36 sm:px-6"
         style={{ color: textColor }}
         aria-live="polite"
       >
