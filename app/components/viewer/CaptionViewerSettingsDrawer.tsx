@@ -35,7 +35,7 @@ export default function CaptionViewerSettingsDrawer({
   onChange,
   onReset,
 }: Props) {
-  const { language } = useSettings() as { language: "en" | "et" };
+  const { language } = useSettings();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {

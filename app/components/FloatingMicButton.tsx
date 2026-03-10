@@ -25,7 +25,7 @@ export default function FloatingMicButton({
   onScrollToBottom,
   onCopyAll,
 }: FloatingMicButtonProps) {
-  const { language } = useSettings() as { language: "en" | "et" };
+  const { language } = useSettings();
   const [copiedAll, setCopiedAll] = useState(false);
 
   const labels = {

@@ -4,7 +4,7 @@ import { Mic } from "lucide-react";
 import { useSettings } from "../providers/SettingsContext";
 
 export default function StartSpeakingPrompt() {
-  const { language } = useSettings() as { language: "en" | "et" };
+  const { language } = useSettings();
 
   const text =
     language === "et" ? "Vajutage alustamiseks" : "Press to start";

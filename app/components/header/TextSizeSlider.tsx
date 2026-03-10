@@ -3,11 +3,7 @@ import { Icons } from "../icons";
 import { useSettings } from "../../providers/SettingsContext";
 
 export default function TextSizeSlider() {
-  const { textSize, setTextSize, language } = useSettings() as {
-    textSize: number;
-    setTextSize: (value: number) => void;
-    language: "en" | "et";
-  };
+  const { textSize, setTextSize, language } = useSettings();
 
   const translations = {
     en: {

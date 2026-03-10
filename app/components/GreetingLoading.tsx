@@ -9,7 +9,7 @@ interface GreetingLoadingProps {
 export default function GreetingLoading({
   loadingMessage,
 }: GreetingLoadingProps) {
-  const { language } = useSettings() as { language: "en" | "et" };
+  const { language } = useSettings();
 
   const defaultMessage =
     language === "et"

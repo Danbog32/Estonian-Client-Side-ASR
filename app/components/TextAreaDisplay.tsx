@@ -17,7 +17,7 @@ const TextAreaDisplay: React.FC<TextAreaDisplayProps> = ({
   lineHeight,
 }) => {
   const [popoverVisible, setPopoverVisible] = useState(false);
-  const { language } = useSettings() as { language: "en" | "et" };
+  const { language } = useSettings();
 
   // Translations for different languages
   const translations = {

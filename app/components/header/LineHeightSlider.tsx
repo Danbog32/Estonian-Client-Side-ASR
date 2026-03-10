@@ -3,11 +3,7 @@ import { Icons } from "../icons";
 import { useSettings } from "../../providers/SettingsContext";
 
 export default function LineHeightSlider() {
-  const { lineHeight, setLineHeight, language } = useSettings() as {
-    lineHeight: number;
-    setLineHeight: (value: number) => void;
-    language: "en" | "et";
-  };
+  const { lineHeight, setLineHeight, language } = useSettings();
 
   const translations = {
     en: {

@@ -33,18 +33,7 @@ export default function SettingsDrawer({
     setBackgroundColor,
     language,
     setLanguage,
-  } = useSettings() as {
-    textSize: number;
-    setTextSize: (value: number) => void;
-    lineHeight: number;
-    setLineHeight: (value: number) => void;
-    textColor: string;
-    setTextColor: (value: string) => void;
-    backgroundColor: string;
-    setBackgroundColor: (value: string) => void;
-    language: "en" | "et";
-    setLanguage: (value: "en" | "et") => void;
-  };
+  } = useSettings();
 
   const translations = {
     en: {
