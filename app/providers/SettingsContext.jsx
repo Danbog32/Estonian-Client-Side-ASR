@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { SHARED_COLOR_PRESETS } from "../components/settings/sharedColorPresets";
 
 const SettingsContext = createContext();
 
@@ -8,18 +9,11 @@ export const useSettings = () => {
   return useContext(SettingsContext);
 };
 
-export const COLOR_PRESETS = [
-  { name: "blackOnWhite", textColor: "#000000", backgroundColor: "#FFFFFF" },
-  { name: "whiteOnBlack", textColor: "#FFFFFF", backgroundColor: "#000000" },
-  { name: "yellowOnBlack", textColor: "#F8E71C", backgroundColor: "#000000" },
-  { name: "cyanOnDark", textColor: "#50E3C2", backgroundColor: "#0B0B0B" },
-  {
-    name: "amberOnCharcoal",
-    textColor: "#FFB347",
-    backgroundColor: "#1A1A1A",
-  },
-  { name: "blueOnGraphite", textColor: "#E0F0FF", backgroundColor: "#0F1216" },
-];
+export const COLOR_PRESETS = SHARED_COLOR_PRESETS.map((preset) => ({
+  name: preset.key,
+  textColor: preset.textColor,
+  backgroundColor: preset.backgroundColor,
+}));
 
 export const SettingsProvider = ({ children }) => {
   const [textSize, setTextSize] = useState(3);

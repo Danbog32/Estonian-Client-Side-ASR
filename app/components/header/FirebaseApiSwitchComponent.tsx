@@ -1,12 +1,17 @@
-// components/FirebaseApiSwitchComponent.jsx
-
 "use client";
 
-import { Switch, cn } from "@heroui/react";
 import { useEffect, useState } from "react";
+import {
+  Copy,
+  Check,
+  QrCode,
+  Share2,
+  Link as LinkIcon,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { useSettings } from "../../providers/SettingsContext";
 import QRCode from "react-qr-code";
-import { Icons } from "../icons";
 
 declare global {
   interface Window {
@@ -25,186 +30,189 @@ export default function FirebaseApiSwitchComponent() {
     language,
   } = useSettings();
 
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const translations = {
     en: {
-      castCaptions: "Cast captions to multiple people",
-      captionsWillBeSent:
-        "Captions will be sent to multiple people who have the link.",
-      yourLiveCaptions: "Your live captions are available at:",
-      hideQRCode: "Hide QR Code",
-      showQRCode: "Show QR Code",
-      linkCopied: "Link copied to clipboard!",
-      failedToCopy: "Failed to copy link",
-      clickToCopy: "Click to copy the link",
+      title: "Cast to multiple people",
+      description: "Share a link so others can follow along on their devices",
+      enable: "Enable casting",
+      disable: "Stop casting",
+      shareLink: "Share link",
+      copyLink: "Copy link",
+      copied: "Copied!",
+      qrCode: "QR Code",
+      hideQR: "Hide QR",
+      tapQR: "Tap QR code to copy link",
     },
     et: {
-      castCaptions: "Saada subtiitrid mitmele inimesele",
-      captionsWillBeSent:
-        "Subtiitrid saadetakse mitmele inimesele, kellel on link.",
-      yourLiveCaptions: "Teie otse subtiitrid on saadaval aadressil:",
-      hideQRCode: "Peida QR-kood",
-      showQRCode: "Näita QR-koodi",
-      linkCopied: "Link kopeeritud lõikelauale!",
-      failedToCopy: "Lingi kopeerimine ebaõnnestus",
-      clickToCopy: "Klõpsake lingi kopeerimiseks",
+      title: "Saada mitmele inimesele",
+      description:
+        "Jaga linki, et teised saaksid oma seadmetes kaasa vaadata",
+      enable: "Lülita sisse",
+      disable: "Peata saatmine",
+      shareLink: "Jaga linki",
+      copyLink: "Kopeeri link",
+      copied: "Kopeeritud!",
+      qrCode: "QR-kood",
+      hideQR: "Peida QR",
+      tapQR: "Puuduta QR-koodi lingi kopeerimiseks",
     },
   };
 
   const t =
     translations[language as keyof typeof translations] || translations.en;
 
-  // Function to update Firebase settings in app-asr.js
   const updateFirebaseSettings = (enabled: boolean, name: string) => {
     if (window.setFirebaseSettings) {
       window.setFirebaseSettings(enabled, name);
     }
   };
 
-  // Function to generate a unique caption name
-  const generateCaptionName = () => {
-    const uniqueId = `caption-${Date.now()}-${Math.floor(
-      Math.random() * 10000
-    )}`;
-    return uniqueId;
-  };
-
-  // Effect to handle firebaseEnabled changes
   useEffect(() => {
     if (firebaseEnabled) {
-      // Generate captionName and captionURL if not already generated
       if (!captionName) {
-        const name = generateCaptionName();
+        const name = `caption-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
         setCaptionName(name);
         const url = `${window.location.origin}/${name}`;
         setCaptionURL(url);
-        // Update Firebase settings in app-asr.js
-        updateFirebaseSettings(firebaseEnabled, name);
+        updateFirebaseSettings(true, name);
       }
     } else {
       setCaptionName("");
       setCaptionURL("");
-      // Update Firebase settings in app-asr.js
-      updateFirebaseSettings(firebaseEnabled, "");
+      updateFirebaseSettings(false, "");
     }
   }, [captionName, firebaseEnabled, setCaptionName, setCaptionURL]);
 
-  // Function to handle QR code click
-  const handleQRCodeClick = () => {
-    if (navigator.clipboard && window.isSecureContext) {
-      // Use navigator.clipboard API
-      navigator.clipboard.writeText(captionURL).then(
-        () => {
-          setCopyMessage(t.linkCopied);
-          setTimeout(() => setCopyMessage(""), 2000);
-        },
-        () => {
-          setCopyMessage(t.failedToCopy);
-          setTimeout(() => setCopyMessage(""), 2000);
-        }
-      );
-    } else {
-      // Fallback method using a temporary textarea
-      const textArea = document.createElement("textarea");
-      textArea.value = captionURL;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        setCopyMessage(t.linkCopied);
-      } catch (err) {
-        setCopyMessage(t.failedToCopy);
-      } finally {
-        textArea.remove();
-        setTimeout(() => setCopyMessage(""), 2000);
-      }
+  const handleCopyLink = async () => {
+    if (!captionURL) return;
+    try {
+      await navigator.clipboard.writeText(captionURL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = captionURL;
+      ta.style.cssText = "position:fixed;left:-9999px;top:-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  // Functions to handle tooltip visibility for non-touch devices
-  const handleQRCodeMouseEnter = () => {
-    setShowTooltip(true);
-  };
-
-  const handleQRCodeMouseLeave = () => {
-    setShowTooltip(false);
-  };
-
   return (
-    <div className="flex flex-col gap-2">
-      <Switch
-        style={{ touchAction: "pan-y" }}
-        isSelected={firebaseEnabled}
-        onChange={(e) => setFirebaseEnabled(e.target.checked)}
-        classNames={{
-          base: cn(
-            "inline-flex flex-row-reverse min-w-full bg-gray-900 hover:bg-gray-800 hover:border-dashed items-center",
-            "justify-between cursor-pointer rounded-lg gap-2 p-4 border-2 border-gray-900",
-            "data-[selected=true]:border-white data-[selected=true]:bg-gray-700"
-          ),
-          wrapper: "p-0 h-4 overflow-visible",
-          thumb: cn(
-            "w-6 h-6 border-2 shadow-lg",
-            "group-data-[hover=true]:border-white",
-            // selected
-            "group-data-[selected=true]:ml-6",
-            // pressed
-            "group-data-[pressed=true]:w-7",
-            "group-data-[selected]:group-data-[pressed]:ml-4"
-          ),
-        }}
+    <div className="flex flex-col gap-3">
+      {/* Toggle button */}
+      <button
+        type="button"
+        className={`
+          flex min-h-[72px] items-center justify-between rounded-[16px] border-[1.5px] px-4 py-3
+          text-left transition-all duration-[250ms]
+          ${
+            firebaseEnabled
+              ? "border-[rgba(74,144,226,0.95)] bg-gradient-to-br from-[rgba(74,144,226,0.18)] to-[rgba(74,144,226,0.08)] shadow-[0_0_0_1px_rgba(74,144,226,0.2)]"
+              : "border-white/10 bg-white/[0.03] hover:border-[rgba(74,144,226,0.4)] hover:bg-white/[0.05]"
+          }
+        `}
+        onClick={() => setFirebaseEnabled(!firebaseEnabled)}
+        aria-pressed={firebaseEnabled}
       >
-        <div className="flex flex-col gap-1">
-          <p className="text-medium text-white">{t.castCaptions}</p>
-          <p className="text-tiny text-white">{t.captionsWillBeSent}</p>
+        <div className="flex items-center gap-3">
+          <Share2
+            className={`h-5 w-5 shrink-0 ${firebaseEnabled ? "text-[#72adff]" : "text-white/50"}`}
+          />
+          <div>
+            <div className="text-sm font-[650] text-white/90">{t.title}</div>
+            <div className="mt-0.5 text-[0.8rem] leading-snug text-white/50">
+              {firebaseEnabled ? t.disable : t.description}
+            </div>
+          </div>
         </div>
-      </Switch>
+
+        <div
+          className={`
+            relative ml-3 h-7 w-12 shrink-0 rounded-full transition-colors duration-200
+            ${firebaseEnabled ? "bg-[#3b82f6]" : "bg-white/15"}
+          `}
+        >
+          <div
+            className={`
+              absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform duration-200
+              ${firebaseEnabled ? "translate-x-[22px]" : "translate-x-0.5"}
+            `}
+          />
+        </div>
+      </button>
+
+      {/* Expanded section when enabled */}
       {firebaseEnabled && captionURL && (
-        <div className="flex flex-col mt-1 gap-2 bg-gray-900 rounded-lg p-3">
-          <p className="text-white">{t.yourLiveCaptions}</p>
-          <a
-            href={captionURL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 break-all"
-          >
-            {captionURL}
-          </a>
-          <div className="mt-2">
-            <button
-              onClick={() => setShowQRCode(!showQRCode)}
-              className="text-white hover:text-blue-500 flex items-center"
+        <div className="flex flex-col gap-3 rounded-[16px] border border-white/10 bg-white/[0.03] p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* URL display + copy */}
+          <div className="flex items-center gap-2 rounded-xl bg-black/30 p-3">
+            <LinkIcon className="h-4 w-4 shrink-0 text-white/40" />
+            <a
+              href={captionURL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-w-0 flex-1 truncate text-sm text-[#72adff] hover:underline"
             >
-              <Icons.qrCode className="mr-2" />
-              {showQRCode ? t.hideQRCode : t.showQRCode}
+              {captionURL}
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`
+                grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-all duration-200
+                ${copied ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/90"}
+              `}
+              aria-label={copied ? t.copied : t.copyLink}
+            >
+              {copied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
           </div>
-          {showQRCode && (
-            <div
-              className="mt-2 flex flex-col items-center bg-white p-2 rounded cursor-pointer relative"
-              style={{ touchAction: "pan-y" }}
-              onClick={handleQRCodeClick}
-              onMouseEnter={handleQRCodeMouseEnter}
-              onMouseLeave={handleQRCodeMouseLeave}
-            >
-              {showTooltip && (
-                <div className="absolute bottom-full mb-2 text-sm bg-black text-white py-1 px-2 rounded-md hidden md:block">
-                  {copyMessage ? t.linkCopied : t.clickToCopy}
-                </div>
-              )}
-              <QRCode value={captionURL} size={180} />
-              {copyMessage && (
-                <div className="absolute bottom-full mb-2 bg-black text-green-500 py-1 px-2 rounded-md text-sm">
-                  {copyMessage}
-                </div>
-              )}
+
+          {copied && (
+            <p className="text-center text-xs font-medium text-emerald-400">
+              {t.copied}
+            </p>
+          )}
+
+          {/* QR Code toggle */}
+          <button
+            type="button"
+            onClick={() => setShowQR(!showQR)}
+            className="flex items-center justify-between rounded-xl bg-white/[0.05] px-3.5 py-2.5 text-sm font-medium text-white/70 transition-all hover:bg-white/[0.08] hover:text-white/90"
+          >
+            <div className="flex items-center gap-2">
+              <QrCode className="h-4 w-4" />
+              <span>{showQR ? t.hideQR : t.qrCode}</span>
+            </div>
+            {showQR ? (
+              <ChevronDown className="h-4 w-4 text-white/40" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-white/40" />
+            )}
+          </button>
+
+          {showQR && (
+            <div className="flex flex-col items-center gap-2 pt-1">
+              <div
+                className="cursor-pointer rounded-2xl bg-white p-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                onClick={handleCopyLink}
+                style={{ touchAction: "pan-y" }}
+              >
+                <QRCode value={captionURL} size={180} />
+              </div>
+              <p className="text-xs text-white/40">{t.tapQR}</p>
             </div>
           )}
         </div>

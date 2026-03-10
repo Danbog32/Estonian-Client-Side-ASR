@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Copy, ArrowDown } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import StartSpeakingPrompt from "./StartSpeakingPrompt";
 import { useSettings } from "../providers/SettingsContext";
 import { useAutoScroll } from "../hooks/useAutoScroll";
@@ -25,9 +25,15 @@ interface TranscriptBlock {
 
 interface CaptionDisplayProps {
   loading: boolean;
+  onScrollStateChange?: (isScrolledUp: boolean) => void;
+  scrollToBottomRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export default function CaptionDisplay({ loading }: CaptionDisplayProps) {
+export default function CaptionDisplay({
+  loading,
+  onScrollStateChange,
+  scrollToBottomRef,
+}: CaptionDisplayProps) {
   const { textSize, lineHeight, textColor } = useSettings();
 
   const [transcriptBlocks, setTranscriptBlocks] = useState<TranscriptBlock[]>(
@@ -39,13 +45,26 @@ export default function CaptionDisplay({ loading }: CaptionDisplayProps) {
     transcriptBlocks.length > 0
       ? transcriptBlocks[transcriptBlocks.length - 1]?.text
       : "";
+  const lastBlockPreviewSuffix =
+    transcriptBlocks.length > 0
+      ? transcriptBlocks[transcriptBlocks.length - 1]?.previewSuffix || ""
+      : "";
+  const autoScrollContentKey = `${transcriptBlocks.length}:${lastBlockText}:${lastBlockPreviewSuffix}`;
 
   const { scrollRef, isScrolledUp, scrollToBottom } =
     useAutoScroll<HTMLDivElement>({
-      content: lastBlockText,
+      content: autoScrollContentKey,
       threshold: 100,
       buttonThreshold: 200,
     });
+
+  if (scrollToBottomRef) {
+    scrollToBottomRef.current = scrollToBottom;
+  }
+
+  useEffect(() => {
+    onScrollStateChange?.(isScrolledUp);
+  }, [isScrolledUp, onScrollStateChange]);
 
   useEffect(() => {
     const handleTranscriptUpdate = (event: CustomEvent) => {
@@ -74,27 +93,28 @@ export default function CaptionDisplay({ loading }: CaptionDisplayProps) {
   };
 
   return (
-    <div className="flex flex-col flex-1 w-full relative" role="main">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col" role="main">
       <div id="transcriptText" className="hidden" />
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 sm:px-6 pt-16 pb-28"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pt-16 pb-28 sm:px-6"
         style={{ color: textColor }}
         aria-live="polite"
       >
         {!loading && transcriptBlocks.length === 0 && <StartSpeakingPrompt />}
 
-        <div className="max-w-3xl mx-auto space-y-4">
-          {transcriptBlocks.map((block) => {
+        <div className="max-w-6xl mx-auto space-y-4">
+          {transcriptBlocks.map((block, index) => {
+            const isLatest = index === transcriptBlocks.length - 1;
             const text = formatDisplayText(
               `${block.text}${block.previewSuffix || ""}`,
             );
             return (
-              <div key={block.id} className="group relative">
+              <div key={block.id} className="group relative ">
                 <p
                   className={`pr-10 break-words select-text transition-opacity ${
-                    !block.isComplete ? "opacity-70" : ""
+                    !isLatest ? "opacity-60" : ""
                   }`}
                   style={{ fontSize: `${textSize}rem`, lineHeight }}
                 >
@@ -102,7 +122,7 @@ export default function CaptionDisplay({ loading }: CaptionDisplayProps) {
                 </p>
                 <button
                   onClick={() => handleCopyText(text, block.id)}
-                  className="absolute top-1 right-0 w-8 h-8 grid place-items-center rounded-md
+                  className="absolute top-1/2 -translate-y-1/2 right-0 w-8 h-8 grid place-items-center rounded-md
                     text-current opacity-0 group-hover:opacity-30 transition-opacity
                     hover:!opacity-60 focus-visible:opacity-60 focus-visible:outline-2 focus-visible:outline-blue-500"
                   aria-label="Copy"
@@ -119,17 +139,6 @@ export default function CaptionDisplay({ loading }: CaptionDisplayProps) {
         </div>
       </div>
 
-      {isScrolledUp && (
-        <button
-          onClick={scrollToBottom}
-          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-20 w-10 h-10 rounded-full
-            grid place-items-center bg-black/70 backdrop-blur-sm border border-white/15
-            text-white/80 transition-all hover:bg-black/90"
-          aria-label="Scroll to bottom"
-        >
-          <ArrowDown size={20} />
-        </button>
-      )}
     </div>
   );
 }

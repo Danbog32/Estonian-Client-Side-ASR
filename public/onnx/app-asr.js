@@ -1216,7 +1216,7 @@ function setupVadWorker() {
       config: {
         sileroVad: {
           threshold: 0.5,
-          minSilenceDuration: 0.4,
+          minSilenceDuration: 1.0,
           minSpeechDuration: 0.25,
           maxSpeechDuration: 20,
           windowSize: 512,

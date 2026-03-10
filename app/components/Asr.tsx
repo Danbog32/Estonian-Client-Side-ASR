@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Script from "next/script";
 import { useSettings } from "../providers/SettingsContext";
 import CaptionDisplay from "./CaptionDisplay";
@@ -23,7 +23,12 @@ export default function Asr() {
 
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [hasTranscript, setHasTranscript] = useState(false);
+  const [transcriptBlocks, setTranscriptBlocks] = useState<
+    { text: string; previewSuffix?: string }[]
+  >([]);
+  const hasTranscript = transcriptBlocks.length > 0;
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const scrollToBottomRef = useRef<(() => void) | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const lang = language as "en" | "et";
@@ -39,8 +44,7 @@ export default function Asr() {
 
   useEffect(() => {
     const handleTranscriptUpdate = (event: CustomEvent) => {
-      const blocks = event.detail?.blocks || [];
-      setHasTranscript(blocks.length > 0);
+      setTranscriptBlocks(event.detail?.blocks || []);
     };
     window.addEventListener(
       "transcriptUpdate",
@@ -68,12 +72,20 @@ export default function Asr() {
 
   const handleClear = () => {
     document.getElementById("clearBtn")?.click();
-    setHasTranscript(false);
+    setTranscriptBlocks([]);
+  };
+
+  const handleCopyAll = async () => {
+    const text = transcriptBlocks
+      .map((b) => `${b.text}${b.previewSuffix || ""}`.trim())
+      .filter(Boolean)
+      .join("\n");
+    await navigator.clipboard.writeText(text);
   };
 
   return (
     <div
-      className="flex flex-col h-dvh w-full overflow-hidden transition-colors duration-200"
+      className="flex min-h-0 flex-col h-dvh w-full overflow-hidden transition-colors duration-200"
       style={{ backgroundColor }}
     >
       <Script
@@ -89,14 +101,21 @@ export default function Asr() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      <CaptionDisplay loading={loading} />
+      <CaptionDisplay
+        loading={loading}
+        onScrollStateChange={setIsScrolledUp}
+        scrollToBottomRef={scrollToBottomRef}
+      />
 
       <FloatingMicButton
         isRecording={isRecording}
         isDisabled={loading}
         hasTranscript={hasTranscript}
+        isScrolledUp={isScrolledUp}
         onToggle={handleToggleRecording}
         onClear={handleClear}
+        onScrollToBottom={() => scrollToBottomRef.current?.()}
+        onCopyAll={handleCopyAll}
       />
 
       <SettingsDrawer

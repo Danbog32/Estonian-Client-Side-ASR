@@ -4,14 +4,14 @@
 
 <img width="550" height="542" alt="image" src="https://github.com/user-attachments/assets/a023086e-cf93-49a1-a800-8b84a1d21828" />
 
-
 ## Privacy
 
 **Local Processing**: Speech recognition happens entirely on your device using WebAssembly (WASM) models. Your voice data never leaves your browser for ASR processing.
 
 **External Services**: While the core ASR is local, certain features may send data to external services:
+
 - **Translation services** send text to translation servers to provide multilingual support
-- **Screen sharing integrations** (Zoom, etc.) may send captions to their respective platforms  
+- **Screen sharing integrations** (Zoom, etc.) may send captions to their respective platforms
 - **Firebase storage** saves caption data if you enable that feature
 
 ## Features

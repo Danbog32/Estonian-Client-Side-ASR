@@ -14,7 +14,7 @@ let config = {
   sileroVad: {
     model: "./silero_vad.onnx",
     threshold: 0.5,
-    minSilenceDuration: 0.4,
+    minSilenceDuration: 1.0,
     minSpeechDuration: 0.25,
     maxSpeechDuration: 20,
     windowSize: 512,
@@ -22,7 +22,7 @@ let config = {
   tenVad: {
     model: "",
     threshold: 0.5,
-    minSilenceDuration: 0.4,
+    minSilenceDuration: 1.0,
     minSpeechDuration: 0.25,
     maxSpeechDuration: 20,
     windowSize: 256,

@@ -60,46 +60,79 @@ body {
 }
 
 /* Settings drawer slider */
-.settings-slider {
+.settings-slider-native {
+  width: 100%;
   height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.12);
   outline: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.settings-slider-native::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.settings-slider-native::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  cursor: pointer;
-}
-
-.settings-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #5fa3ff, #3b82f6);
+  background: #f3f4f6;
+  border: 4px solid #4a90e2;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
-  transition: all 0.2s ease;
+  /* box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 18px rgba(74, 144, 226, 0.45); */
+  margin-top: -10px;
+  transition: transform 0.2s ease;
+  /* box-shadow 0.2s ease; */
 }
 
-.settings-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.6);
+.settings-slider-native:hover::-webkit-slider-thumb {
+  transform: scale(1.05);
+  /* box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(74, 144, 226, 0.6); */
 }
 
-.settings-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+.settings-slider-native::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-slider-native::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f7cff 0%, #68a9ff 100%);
+}
+
+.settings-slider-native::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #5fa3ff, #3b82f6);
+  background: #f3f4f6;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  border: 4px solid #4a90e2;
+  /* box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 18px rgba(74, 144, 226, 0.45); */
+  transition: transform 0.2s ease;
+  /* box-shadow 0.2s ease; */
 }
 
-.settings-slider::-moz-range-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.6);
+.settings-slider-native:hover::-moz-range-thumb {
+  transform: scale(1.05);
+  /* box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(74, 144, 226, 0.6); */
 }
 
 /* Hidden audio clips container for app-asr.js compatibility */

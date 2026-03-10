@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { X, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
-import { useSettings, COLOR_PRESETS } from "../providers/SettingsContext";
-import TranslationSwitchComponent from "./header/TranslationSwitchComponent";
-import ZoomApiSwitchComponent from "./header/ZoomApiSwitchComponent";
+import { ExternalLink, Github } from "lucide-react";
+import { useSettings } from "../providers/SettingsContext";
 import FirebaseApiSwitchComponent from "./header/FirebaseApiSwitchComponent";
+import { Icons } from "./icons";
+import {
+  SettingsColorInput,
+  SettingsDrawerShell,
+  SettingsPresetGrid,
+  SettingsSection,
+  SettingsSliderField,
+} from "./settings/SettingsDrawerPrimitives";
+import { SHARED_COLOR_PRESETS } from "./settings/sharedColorPresets";
 
 interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps) {
+export default function SettingsDrawer({
+  isOpen,
+  onClose,
+}: SettingsDrawerProps) {
   const {
     textSize,
     setTextSize,
@@ -26,299 +35,231 @@ export default function SettingsDrawer({ isOpen, onClose }: SettingsDrawerProps)
     setLanguage,
   } = useSettings() as {
     textSize: number;
-    setTextSize: (v: number) => void;
+    setTextSize: (value: number) => void;
     lineHeight: number;
-    setLineHeight: (v: number) => void;
+    setLineHeight: (value: number) => void;
     textColor: string;
-    setTextColor: (v: string) => void;
+    setTextColor: (value: string) => void;
     backgroundColor: string;
-    setBackgroundColor: (v: string) => void;
+    setBackgroundColor: (value: string) => void;
     language: "en" | "et";
-    setLanguage: (v: string) => void;
+    setLanguage: (value: "en" | "et") => void;
   };
-
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const translations = {
     en: {
       settings: "Settings",
       subtitle: "Customize your experience",
+      typography: "Typography",
+      typographyDesc: "Adjust font size and line height",
       fontSize: "Font size",
       lineHeight: "Line height",
+      colors: "Colors",
+      colorsDesc: "Choose your preferred text and background",
+      textColor: "Text",
+      backgroundColor: "Background",
       presets: "Color presets",
       language: "Language",
-      advanced: "Advanced",
-      advancedDesc: "Translation, Firebase, Zoom",
+      languageDesc: "Select the interface language",
+      sharing: "Sharing",
+      sharingDesc: "Let others follow along live",
       about: "About",
-      aboutText:
-        "Estonian speech-to-text by TalTech Language Technology Lab. Free, no login required. Runs entirely in your browser.",
-      author: "Author: Bohdan Podziubanchuk",
+      aboutDesc:
+        "Free Estonian speech-to-text that runs entirely in your browser. No login",
+      author: "Bohdan Podziubanchuk",
+      authorRole: "TalTech Language Technology Lab",
+      github: "Source code",
+      learnMore: "Learn more",
       close: "Close",
-      blackOnWhite: "Black / White",
-      whiteOnBlack: "White / Black",
-      yellowOnBlack: "Yellow / Black",
-      cyanOnDark: "Cyan / Dark",
-      amberOnCharcoal: "Amber / Charcoal",
-      blueOnGraphite: "Blue / Graphite",
+      estonian: "Eesti",
+      english: "English",
     },
     et: {
       settings: "Seaded",
       subtitle: "Kohanda oma kogemust",
+      typography: "Kirjastiil",
+      typographyDesc: "Muuda teksti suurust ja reavahet",
       fontSize: "Teksti suurus",
       lineHeight: "Reavahe",
+      colors: "Värvid",
+      colorsDesc: "Vali teksti ja tausta eelistatud ilme",
+      textColor: "Tekst",
+      backgroundColor: "Taust",
       presets: "Värvi eelseaded",
       language: "Keel",
-      advanced: "Täiendavad seaded",
-      advancedDesc: "Tõlge, Firebase, Zoom",
+      languageDesc: "Vali kasutajaliidese keel",
+      sharing: "Jagamine",
+      sharingDesc: "Lase teistel reaalajas kaasa vaadata",
       about: "Rakenduse teave",
-      aboutText:
-        "Eesti kõnetuvastus TalTech keeletehnoloogia labori poolt. Tasuta, ilma sisselogimiseta. Töötab täielikult brauseris.",
-      author: "Autor: Bohdan Podziubanchuk",
+      aboutDesc:
+        "Tasuta eesti kõnetuvastus, mis töötab täielikult brauseris. Ilma sisselogimiseta",
+      author: "Bohdan Podziubanchuk",
+      authorRole: "TalTech keeletehnoloogia labor",
+      github: "Lähtekood",
+      learnMore: "Loe lähemalt",
       close: "Sulge",
-      blackOnWhite: "Must / Valge",
-      whiteOnBlack: "Valge / Must",
-      yellowOnBlack: "Kollane / Must",
-      cyanOnDark: "Tsüaan / Tume",
-      amberOnCharcoal: "Merevaik / Söe",
-      blueOnGraphite: "Sinine / Grafiit",
+      estonian: "Eesti",
+      english: "English",
     },
-  };
+  } as const;
 
-  const t = translations[language] || translations.en;
-
-  const presetLabels: Record<string, string> = {
-    blackOnWhite: t.blackOnWhite,
-    whiteOnBlack: t.whiteOnBlack,
-    yellowOnBlack: t.yellowOnBlack,
-    cyanOnDark: t.cyanOnDark,
-    amberOnCharcoal: t.amberOnCharcoal,
-    blueOnGraphite: t.blueOnGraphite,
-  };
-
-  const applyPreset = (preset: (typeof COLOR_PRESETS)[number]) => {
-    setTextColor(preset.textColor);
-    setBackgroundColor(preset.backgroundColor);
-  };
+  const t = translations[language] ?? translations.en;
 
   return (
-    <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      <div
-        className={`
-          fixed top-0 left-0 h-dvh z-50 flex flex-col
-          w-[min(380px,90vw)]
-          bg-gradient-to-br from-[rgba(20,20,24,0.97)] to-[rgba(26,26,30,0.97)]
-          backdrop-blur-xl border-r border-white/10
-          shadow-[4px_0_24px_rgba(0,0,0,0.5)]
-          transition-transform duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)]
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t.settings}
+    <SettingsDrawerShell
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={t.settings}
+      subtitle={t.subtitle}
+      closeLabel={t.close}
+      placement="right"
+    >
+      <SettingsSection
+        icon={Icons.textSelect}
+        title={t.typography}
+        description={t.typographyDesc}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4 border-b border-white/[0.06]">
-          <div>
-            <h2 className="text-xl font-bold text-white">{t.settings}</h2>
-            <p className="text-sm text-white/50 mt-0.5">{t.subtitle}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 grid place-items-center rounded-lg text-white/70 hover:bg-white/[0.08] hover:text-white/95 transition-all"
-            aria-label={t.close}
-          >
-            <X size={20} />
-          </button>
+        <div className="flex flex-col gap-5">
+          <SettingsSliderField
+            icon={Icons.type}
+            label={t.fontSize}
+            valueLabel={`${textSize}rem`}
+            minValue={1}
+            maxValue={8}
+            step={0.5}
+            value={textSize}
+            onChange={setTextSize}
+            minLabel="1"
+            maxLabel="8"
+          />
+
+          <SettingsSliderField
+            icon={Icons.gripVertical}
+            label={t.lineHeight}
+            valueLabel={`${lineHeight}`}
+            minValue={1}
+            maxValue={3}
+            step={0.2}
+            value={lineHeight}
+            onChange={setLineHeight}
+            minLabel="1"
+            maxLabel="3"
+          />
         </div>
+      </SettingsSection>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Font size */}
-          <section>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-medium text-white/75">
-                {t.fontSize}
-              </span>
-              <span className="text-xs font-semibold bg-blue-500/15 text-blue-400 px-2.5 py-1 rounded-md border border-blue-500/25">
-                {textSize}rem
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={8}
-              step={0.5}
-              value={textSize}
-              onChange={(e) => setTextSize(Number(e.target.value))}
-              className="settings-slider w-full"
+      <SettingsSection
+        icon={Icons.palette}
+        title={t.colors}
+        description={t.colorsDesc}
+      >
+        <div className="flex flex-col gap-5">
+          <div className="flex gap-4">
+            <SettingsColorInput
+              label={t.textColor}
+              value={textColor}
+              onChange={setTextColor}
             />
-            <div className="flex justify-between text-xs text-white/40 mt-1">
-              <span>1</span>
-              <span>8</span>
-            </div>
-          </section>
-
-          {/* Line height */}
-          <section>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-medium text-white/75">
-                {t.lineHeight}
-              </span>
-              <span className="text-xs font-semibold bg-blue-500/15 text-blue-400 px-2.5 py-1 rounded-md border border-blue-500/25">
-                {lineHeight}
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.2}
-              value={lineHeight}
-              onChange={(e) => setLineHeight(Number(e.target.value))}
-              className="settings-slider w-full"
+            <SettingsColorInput
+              label={t.backgroundColor}
+              value={backgroundColor}
+              onChange={setBackgroundColor}
             />
-            <div className="flex justify-between text-xs text-white/40 mt-1">
-              <span>1</span>
-              <span>3</span>
-            </div>
-          </section>
+          </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-          {/* Color presets */}
-          <section>
-            <span className="text-sm font-medium text-white/75 block mb-3">
+          <div className="flex flex-col gap-2">
+            <div className="text-sm font-[550] tracking-[-0.005em] text-white/75">
               {t.presets}
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              {COLOR_PRESETS.map((preset) => {
-                const isActive =
-                  textColor === preset.textColor &&
-                  backgroundColor === preset.backgroundColor;
-                return (
-                  <button
-                    key={preset.name}
-                    onClick={() => applyPreset(preset)}
-                    className={`
-                      flex flex-col rounded-lg border overflow-hidden transition-all
-                      ${
-                        isActive
-                          ? "border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.3)]"
-                          : "border-white/10 hover:border-blue-500/40 hover:-translate-y-0.5"
-                      }
-                    `}
-                    aria-label={presetLabels[preset.name]}
-                  >
-                    <div
-                      className="w-full h-[52px] grid place-items-center text-2xl font-semibold"
-                      style={{
-                        backgroundColor: preset.backgroundColor,
-                        color: preset.textColor,
-                      }}
-                    >
-                      Aa
-                    </div>
-                    <span className="text-[10px] text-white/70 text-center py-1.5 px-1 font-medium">
-                      {presetLabels[preset.name]}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
-          </section>
+            <SettingsPresetGrid
+              presets={SHARED_COLOR_PRESETS}
+              language={language}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              onSelect={(preset) => {
+                setTextColor(preset.textColor);
+                setBackgroundColor(preset.backgroundColor);
+              }}
+            />
+          </div>
+        </div>
+      </SettingsSection>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-          {/* Language */}
-          <section>
-            <span className="text-sm font-medium text-white/75 block mb-3">
-              {t.language}
-            </span>
-            <div className="flex gap-2">
-              {(["et", "en"] as const).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => setLanguage(lang)}
-                  aria-pressed={language === lang}
-                  className={`
-                    flex-1 py-3 rounded-lg text-sm font-semibold transition-all border
-                    ${
-                      language === lang
-                        ? "bg-blue-600/20 border-blue-500 text-white"
-                        : "bg-white/[0.02] border-white/10 text-white/60 hover:border-white/25"
-                    }
-                  `}
-                >
-                  {lang === "et" ? "Eesti" : "English"}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-
-          {/* Advanced (collapsible) */}
-          <section>
+      <SettingsSection
+        icon={Icons.languages}
+        title={t.language}
+        description={t.languageDesc}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {(
+            [
+              { key: "et", label: t.estonian },
+              { key: "en", label: t.english },
+            ] as const
+          ).map((option) => (
             <button
-              onClick={() => setAdvancedOpen(!advancedOpen)}
-              className="flex items-center justify-between w-full text-left py-2"
-              aria-expanded={advancedOpen}
+              key={option.key}
+              type="button"
+              className={` rounded-[14px] border-[1.5px] px-4 py-3 text-base font-[700] transition-all duration-[250ms] ${
+                language === option.key
+                  ? "border-[rgba(74,144,226,0.95)] bg-gradient-to-br from-[rgba(74,144,226,0.18)] to-[rgba(74,144,226,0.08)] text-white shadow-[0_0_0_1px_rgba(74,144,226,0.2)]"
+                  : "border-white/10 bg-white/[0.02] text-white/70 hover:-translate-y-px hover:border-[rgba(74,144,226,0.4)] hover:bg-white/[0.05]"
+              }`}
+              aria-pressed={language === option.key}
+              onClick={() => setLanguage(option.key)}
             >
-              <div>
-                <span className="text-sm font-medium text-white/75 block">
-                  {t.advanced}
-                </span>
-                <span className="text-xs text-white/40">
-                  {t.advancedDesc}
-                </span>
-              </div>
-              {advancedOpen ? (
-                <ChevronDown size={18} className="text-white/50 shrink-0" />
-              ) : (
-                <ChevronRight size={18} className="text-white/50 shrink-0" />
-              )}
+              {option.label}
             </button>
+          ))}
+        </div>
+      </SettingsSection>
 
-            {advancedOpen && (
-              <div className="mt-3 space-y-3">
-                <TranslationSwitchComponent />
-                <ZoomApiSwitchComponent />
-                <FirebaseApiSwitchComponent />
-              </div>
-            )}
-          </section>
+      <SettingsSection
+        icon={Icons.cloud}
+        title={t.sharing}
+        description={t.sharingDesc}
+      >
+        <FirebaseApiSwitchComponent />
+      </SettingsSection>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      <SettingsSection
+        icon={Icons.info}
+        title={t.about}
+        description={t.aboutDesc}
+        showDivider={false}
+      >
+        <div className="rounded-[18px] border border-white/[0.08] bg-white/[0.03] p-5">
+          <div className="flex items-center gap-3.5">
+            <div>
+              <div className="text-sm font-[650] text-white/90">{t.author}</div>
+              <div className="text-[0.8rem] text-white/50">{t.authorRole}</div>
+            </div>
+          </div>
 
-          {/* About */}
-          <section className="pb-4">
-            <span className="text-sm font-medium text-white/75 block mb-2">
-              {t.about}
-            </span>
-            <p className="text-xs text-white/50 leading-relaxed">
-              {t.aboutText}
-            </p>
-            <p className="text-xs text-white/40 mt-2">{t.author}</p>
+          <div className="mt-4 flex gap-2">
             <a
               href="https://taltech.ee/en/laboratory-language-technology"
               target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
+              rel="noreferrer"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2.5 text-[0.8rem] font-[600] text-white/70 transition-all hover:bg-white/[0.1] hover:text-white/90"
             >
-              TalTech Language Technology Lab
-              <ExternalLink size={12} />
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t.learnMore}
             </a>
-          </section>
+            <a
+              href="https://github.com/Danbog32/Estonian-Client-Side-ASR"
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/[0.06] px-3 py-2.5 text-[0.8rem] font-[600] text-white/70 transition-all hover:bg-white/[0.1] hover:text-white/90"
+            >
+              <Github className="h-3.5 w-3.5" />
+              {t.github}
+            </a>
+          </div>
         </div>
-      </div>
-    </>
+      </SettingsSection>
+    </SettingsDrawerShell>
   );
 }
