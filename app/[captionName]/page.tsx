@@ -120,6 +120,8 @@ export default function LiveCaptionsPage() {
 
   const scrollButtonClass =
     "w-10 h-10 rounded-full grid place-items-center bg-black/70 backdrop-blur-sm border border-white/15 text-white/80 transition-all hover:bg-black/90 active:scale-95";
+  const mobileTopBarReservedHeight =
+    "calc(max(0.5rem, env(safe-area-inset-top)) + 45px + 1rem)";
 
   return (
     <div
@@ -127,10 +129,7 @@ export default function LiveCaptionsPage() {
       style={{ backgroundColor: settings.backgroundColor }}
     >
       {/* ── Floating top bar ── */}
-      <div
-        className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 pointer-events-none"
-        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
-      >
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none max-md:px-3 max-md:py-2 max-md:pt-0">
         <Link
           href="https://taltech.ee/en/laboratory-language-technology"
           target="_blank"
@@ -146,17 +145,23 @@ export default function LiveCaptionsPage() {
 
         <button
           onClick={() => setSettingsOpen(true)}
-          className="pointer-events-auto w-11 h-11 rounded-full grid place-items-center bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 transition-all hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 transition-all hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 max-md:h-10 max-md:w-10"
           aria-label={t.settings}
         >
-          <Settings size={20} />
+          <Settings size={20} className="max-md:h-[18px] max-md:w-[18px]" />
         </button>
       </div>
+
+      <div
+        aria-hidden="true"
+        className="shrink-0 md:hidden"
+        style={{ height: mobileTopBarReservedHeight }}
+      />
 
       {/* ── Full-screen caption area ── */}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pt-16 pb-28 sm:px-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pb-28 sm:px-6 md:pt-16"
         style={{ color: settings.textColor }}
         aria-live="polite"
       >

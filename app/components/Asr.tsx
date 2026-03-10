@@ -20,6 +20,8 @@ const translations = {
 
 export default function Asr() {
   const { language, backgroundColor } = useSettings();
+  const mobileTopBarReservedHeight =
+    "calc(max(0.5rem, env(safe-area-inset-top)) + 45px + 1rem)";
 
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -99,6 +101,12 @@ export default function Asr() {
       <TopBar
         isRecording={isRecording}
         onOpenSettings={() => setSettingsOpen(true)}
+      />
+
+      <div
+        aria-hidden="true"
+        className="shrink-0 md:hidden"
+        style={{ height: mobileTopBarReservedHeight }}
       />
 
       <CaptionDisplay

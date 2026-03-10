@@ -106,7 +106,7 @@ export default function CaptionViewerDisplay({
   }, [isMobile, settings.letterSpacingEm]);
 
   return (
-    <div className="w-full" aria-live="polite">
+    <div className="mx-auto w-full max-w-7xl" aria-live="polite">
       <div
         className="relative flex max-w-full flex-col justify-start px-3 py-3 sm:px-5 md:px-6"
         style={{
