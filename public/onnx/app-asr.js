@@ -25,6 +25,8 @@ if (!transcriptElement) {
 let subtitleMode = false; // Default to false for text mode
 const maxWords = 24; // Maximum number of words to display
 const minSentenceLength = 8; // Minimum words in a sentence before it is considered complete
+const VAD_END_GRACE_MS = 220;
+const SPLIT_SUFFIX_FRAGMENT_RE = /^([bcdfghjklmnpqrstvwxyzšž])(?:\s+|$)([\s\S]*)$/;
 
 // Variables for API settings
 let apiToken = ""; // Store API token from the settings
@@ -529,7 +531,49 @@ let activeUtteranceId = null;
 let partialTranslationUtteranceId = null;
 let currentPreviewSuffix = "";
 
+function isLowercaseWordText(value) {
+  return typeof value === "string" && /^[a-zõäöüšž]+$/.test(value);
+}
+
+function getTrailingWordFragment(text) {
+  if (typeof text !== "string") {
+    return "";
+  }
+
+  const match = text.match(/([a-zõäöüšž]+)$/);
+  return match ? match[1] : "";
+}
+
+function extractLeadingSuffixFragment(text) {
+  if (typeof text !== "string" || !text.trim()) {
+    return { prefix: "", remainder: text || "" };
+  }
+
+  const lastBlock = completedBlocks[completedBlocks.length - 1];
+  const trailingWord = getTrailingWordFragment(lastBlock?.text || "");
+  if (trailingWord.length < 4 || !isLowercaseWordText(trailingWord)) {
+    return { prefix: "", remainder: text };
+  }
+
+  const match = text.match(SPLIT_SUFFIX_FRAGMENT_RE);
+  if (!match) {
+    return { prefix: "", remainder: text };
+  }
+
+  const prefix = match[1] || "";
+  const remainder = (match[2] || "").trimStart();
+  if (remainder && !/^[a-zõäöüšž]/.test(remainder)) {
+    return { prefix: "", remainder: text };
+  }
+
+  return {
+    prefix,
+    remainder,
+  };
+}
+
 function resetTranscriptState() {
+  clearPendingVadSpeechEnd();
   resultList = [];
   lastResult = "";
   completedBlocks = [];
@@ -627,7 +671,12 @@ function normalizeActiveUtteranceText(text, options = {}) {
     return rawText;
   }
 
-  const { prefix, remainder } = extractLeadingPunctuation(rawText);
+  let { prefix, remainder } = extractLeadingPunctuation(rawText);
+
+  if (!prefix) {
+    ({ prefix, remainder } = extractLeadingSuffixFragment(rawText));
+  }
+
   if (!prefix) {
     if (!commitPreview) {
       clearPreviewSuffix();
@@ -1049,6 +1098,49 @@ const preferredLocalSegmentationMode = "vad";
 let localSegmentationMode = preferredLocalSegmentationMode;
 let localUtteranceCounter = 0;
 let vadActiveUtteranceId = null;
+let vadSpeechEndTimer = null;
+
+function clearPendingVadSpeechEnd() {
+  if (!vadSpeechEndTimer) {
+    return;
+  }
+
+  clearTimeout(vadSpeechEndTimer);
+  vadSpeechEndTimer = null;
+}
+
+function scheduleVadSpeechEnd() {
+  if (!vadActiveUtteranceId) {
+    return;
+  }
+
+  clearPendingVadSpeechEnd();
+  const utteranceId = vadActiveUtteranceId;
+  vadSpeechEndTimer = setTimeout(() => {
+    vadSpeechEndTimer = null;
+    if (vadActiveUtteranceId !== utteranceId) {
+      return;
+    }
+
+    try {
+      asrWorker?.postMessage({ type: "end_utterance" });
+    } catch (_) {}
+    vadActiveUtteranceId = null;
+  }, VAD_END_GRACE_MS);
+}
+
+function finalizeActiveVadUtteranceImmediately() {
+  clearPendingVadSpeechEnd();
+
+  if (!vadActiveUtteranceId) {
+    return;
+  }
+
+  try {
+    asrWorker?.postMessage({ type: "force_finalize" });
+  } catch (_) {}
+  vadActiveUtteranceId = null;
+}
 
 // SharedArrayBuffer audio ring buffer (optional fast path)
 let sabSupported =
@@ -1142,6 +1234,8 @@ function teardownAsrWorker() {
 }
 
 function teardownVadWorker() {
+  clearPendingVadSpeechEnd();
+
   if (!vadWorker) {
     vadWorkerInitialized = false;
     vadActiveUtteranceId = null;
@@ -1187,6 +1281,7 @@ function setupVadWorker() {
       }
 
       if (msg.type === "speech_start") {
+        clearPendingVadSpeechEnd();
         if (!vadActiveUtteranceId) {
           localUtteranceCounter += 1;
           vadActiveUtteranceId = `utt-${localUtteranceCounter}`;
@@ -1200,8 +1295,7 @@ function setupVadWorker() {
 
       if (msg.type === "speech_end") {
         if (vadActiveUtteranceId) {
-          asrWorker?.postMessage({ type: "end_utterance" });
-          vadActiveUtteranceId = null;
+          scheduleVadSpeechEnd();
         }
         return;
       }
@@ -1216,7 +1310,7 @@ function setupVadWorker() {
       config: {
         sileroVad: {
           threshold: 0.5,
-          minSilenceDuration: 1.0,
+          minSilenceDuration: 1.1,
           minSpeechDuration: 0.25,
           maxSpeechDuration: 20,
           windowSize: 512,
@@ -1507,12 +1601,7 @@ function stopRecordingInternal() {
     try {
       vadWorker?.postMessage({ type: "flush" });
     } catch (_) {}
-    if (vadActiveUtteranceId) {
-      try {
-        asrWorker?.postMessage({ type: "force_finalize" });
-      } catch (_) {}
-      vadActiveUtteranceId = null;
-    }
+    finalizeActiveVadUtteranceImmediately();
   }
 
   // Disconnect audio graph

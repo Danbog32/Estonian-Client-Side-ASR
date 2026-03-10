@@ -103,6 +103,7 @@ export default function Asr() {
 
       <CaptionDisplay
         loading={loading}
+        isRecording={isRecording}
         onScrollStateChange={setIsScrolledUp}
         scrollToBottomRef={scrollToBottomRef}
       />

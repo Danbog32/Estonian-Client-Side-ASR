@@ -25,12 +25,14 @@ interface TranscriptBlock {
 
 interface CaptionDisplayProps {
   loading: boolean;
+  isRecording?: boolean;
   onScrollStateChange?: (isScrolledUp: boolean) => void;
   scrollToBottomRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export default function CaptionDisplay({
   loading,
+  isRecording = false,
   onScrollStateChange,
   scrollToBottomRef,
 }: CaptionDisplayProps) {
@@ -114,7 +116,7 @@ export default function CaptionDisplay({
               <div key={block.id} className="group relative ">
                 <p
                   className={`pr-10 break-words select-text transition-opacity ${
-                    !isLatest ? "opacity-60" : ""
+                    isRecording && !isLatest ? "opacity-70" : ""
                   }`}
                   style={{ fontSize: `${textSize}rem`, lineHeight }}
                 >
@@ -138,7 +140,6 @@ export default function CaptionDisplay({
           })}
         </div>
       </div>
-
     </div>
   );
 }
