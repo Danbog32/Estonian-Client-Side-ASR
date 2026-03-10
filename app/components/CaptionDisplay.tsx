@@ -24,6 +24,7 @@ interface TranscriptBlock {
   text: string;
   isComplete: boolean;
   timestamp: string;
+  previewSuffix?: string;
   translation?: {
     text: string;
     status: "pending" | "completed" | "error" | "partial";
@@ -77,6 +78,7 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
     };
 
     const t = translations[language];
+    const renderedText = `${block.text}${block.previewSuffix || ""}`;
 
     return (
       <div
@@ -111,13 +113,13 @@ const TranscriptBlockComponent = memo<TranscriptBlockComponentProps>(
               lineHeight: lineHeight,
             }}
           >
-            {formatDisplayText(block.text)}
+            {formatDisplayText(renderedText)}
           </p>
 
           {/* Copy button in bottom right corner */}
           <Tooltip content={t.copyText} showArrow={true}>
             <Button
-              onPress={() => onCopyText(block.text, block.id)}
+              onPress={() => onCopyText(renderedText, block.id)}
               size="sm"
               isIconOnly
               className={`

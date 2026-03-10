@@ -262,11 +262,17 @@ window.setTranslationSettings = function (
     try {
       asrWorker?.postMessage({ type: "pause" });
     } catch (_) {}
+    try {
+      vadWorker?.postMessage({ type: "pause" });
+    } catch (_) {}
     initWebSocketAsr();
   } else {
     // Resume local worker when leaving WS mode
     try {
       asrWorker?.postMessage({ type: "resume" });
+    } catch (_) {}
+    try {
+      vadWorker?.postMessage({ type: "resume" });
     } catch (_) {}
     teardownWebSocketAsr(true);
   }
@@ -280,6 +286,8 @@ window.setTranslationSettings = function (
 // Ensure clean shutdown
 window.addEventListener("beforeunload", () => {
   teardownWebSocketAsr(true);
+  teardownVadWorker();
+  teardownAsrWorker();
 });
 
 // Function to reset translation session (called from Settings or when stuck)
@@ -507,8 +515,7 @@ function checkAndClearText(text) {
     console.warn(
       "Text size limit reached. Clearing text to prevent exceeding Firebase's limit."
     );
-    resultList = [];
-    lastSentCaption = "";
+    resetTranscriptState();
     return "";
   } else {
     return text;
@@ -516,23 +523,129 @@ function checkAndClearText(text) {
 }
 
 let lastResult = "";
-let prevSubList = []; // List to store previous subtitle texts
-let resultList = [];
+let resultList = []; // Completed utterance texts
+let completedBlocks = []; // Completed utterance blocks with stable IDs
+let activeUtteranceId = null;
+let partialTranslationUtteranceId = null;
+let currentPreviewSuffix = "";
 
-// Maintain stable blocks to prevent unnecessary re-renders
-let completedBlocks = []; // Store completed blocks with stable IDs
-let currentBlockId = null; // ID of the current incomplete block
+function resetTranscriptState() {
+  resultList = [];
+  lastResult = "";
+  completedBlocks = [];
+  activeUtteranceId = null;
+  localUtteranceCounter = 0;
+  vadActiveUtteranceId = null;
+  currentPreviewSuffix = "";
+  lastSentCaption = "";
+  lastSentText = "";
+  partialTranslationUtteranceId = null;
+  sentTranslations.clear();
+  window.transcriptBlocks = [];
+}
+
+function refreshCompletedTextList() {
+  resultList = completedBlocks.map((block) =>
+    cleanText(`${block.text}${block.previewSuffix || ""}`)
+  );
+}
+
+function clearPreviewSuffix() {
+  const lastBlock = completedBlocks[completedBlocks.length - 1];
+  if (!lastBlock) {
+    currentPreviewSuffix = "";
+    return;
+  }
+
+  if (lastBlock.previewSuffix) {
+    lastBlock.previewSuffix = "";
+  }
+  currentPreviewSuffix = "";
+  refreshCompletedTextList();
+}
+
+function extractLeadingPunctuation(text) {
+  if (typeof text !== "string" || !text.length) {
+    return { prefix: "", remainder: "" };
+  }
+
+  const match = text.match(/^([\s.,!?;:]+)(?=\S)/);
+  if (!match) {
+    return { prefix: "", remainder: text };
+  }
+
+  const prefix = match[1] || "";
+  const suffix = prefix.replace(/\s+/g, "");
+  return {
+    prefix: suffix,
+    remainder: text.slice(prefix.length).trimStart(),
+  };
+}
+
+function setPreviewSuffix(prefix) {
+  const lastBlock = completedBlocks[completedBlocks.length - 1];
+  if (!lastBlock) {
+    currentPreviewSuffix = "";
+    return;
+  }
+
+  lastBlock.previewSuffix = prefix || "";
+  currentPreviewSuffix = prefix || "";
+  refreshCompletedTextList();
+}
+
+function commitPreviewSuffix(prefix = "") {
+  const lastBlock = completedBlocks[completedBlocks.length - 1];
+  if (!lastBlock) {
+    currentPreviewSuffix = "";
+    return;
+  }
+
+  const suffix = prefix || lastBlock.previewSuffix || "";
+  if (suffix) {
+    lastBlock.text = cleanText(`${lastBlock.text}${suffix}`);
+  }
+
+  lastBlock.previewSuffix = "";
+  currentPreviewSuffix = "";
+  refreshCompletedTextList();
+}
+
+function normalizeActiveUtteranceText(text, options = {}) {
+  const { commitPreview = false } = options;
+  const rawText = typeof text === "string" ? text : "";
+
+  if (!rawText.trim()) {
+    if (!commitPreview) {
+      clearPreviewSuffix();
+    }
+    return "";
+  }
+
+  if (completedBlocks.length === 0) {
+    currentPreviewSuffix = "";
+    return rawText;
+  }
+
+  const { prefix, remainder } = extractLeadingPunctuation(rawText);
+  if (!prefix) {
+    if (!commitPreview) {
+      clearPreviewSuffix();
+    }
+    return rawText;
+  }
+
+  if (commitPreview) {
+    commitPreviewSuffix(prefix);
+  } else {
+    setPreviewSuffix(prefix);
+  }
+
+  return remainder;
+}
 
 clearBtn.onclick = function () {
-  resultList = [];
-  prevSubList = [];
-  lastResult = "";
-  lastSentCaption = ""; // Reset the last sent caption
-  window.transcriptBlocks = []; // Reset blocks
-  completedBlocks = []; // Reset completed blocks
-  currentBlockId = null; // Reset current block ID
-  sentTranslations.clear(); // Clear translation history to allow fresh translations
-  lastSentText = ""; // Reset last sent text
+  resetTranscriptState();
   transcriptElement.innerHTML = "";
 
   // Trigger React component update
@@ -549,6 +662,11 @@ clearBtn.onclick = function () {
   if (asrWorker) {
     try {
       asrWorker.postMessage({ type: "reset" });
+    } catch (_) {}
+  }
+  if (vadWorker) {
+    try {
+      vadWorker.postMessage({ type: "reset" });
     } catch (_) {}
   }
   recognizer_stream = null;
@@ -601,83 +719,36 @@ clearBtn.onclick = function () {
 };
 
 function getDisplayResult() {
-  let blocksChanged = false;
+  let currentText = "";
 
-  // Check if completed blocks need to be updated (when resultList changes)
-  if (completedBlocks.length !== resultList.length) {
-    // Add new completed blocks
-    for (let i = completedBlocks.length; i < resultList.length; i++) {
-      if (resultList[i] && resultList[i].trim() !== "") {
-        const newBlock = {
-          id: `block-${Date.now()}-${i}`,
-          text: cleanText(resultList[i]),
-          isComplete: true,
-          timestamp: new Date().toISOString(),
-        };
-        completedBlocks.push(newBlock);
-        blocksChanged = true;
-      }
-    }
+  if (lastResult.length > 0) {
+    currentText = cleanText(
+      normalizeActiveUtteranceText(lastResult, { commitPreview: false })
+    );
+  } else {
+    clearPreviewSuffix();
   }
 
-  // Handle current incomplete block
-  let currentBlock = null;
-  if (lastResult.length > 0) {
-    const currentText = cleanText(lastResult);
+  const blocks = completedBlocks.map((block) => ({
+    ...block,
+    previewSuffix: block.previewSuffix || "",
+  }));
 
-    // Create new block ID if we don't have one or if text changed significantly
-    if (!currentBlockId) {
-      currentBlockId = `current-${Date.now()}`;
-      blocksChanged = true;
-    }
-
-    currentBlock = {
-      id: currentBlockId,
+  if (currentText) {
+    blocks.push({
+      id: activeUtteranceId || `current-${Date.now()}`,
       text: currentText,
       isComplete: false,
       timestamp: new Date().toISOString(),
-    };
-
-    // Check if current block text actually changed
-    const existingCurrentBlock = window.transcriptBlocks?.find(
-      (block) => block.id === currentBlockId
-    );
-    if (!existingCurrentBlock || existingCurrentBlock.text !== currentText) {
-      blocksChanged = true;
-    }
-  } else if (currentBlockId) {
-    // Current block was removed
-    currentBlockId = null;
-    blocksChanged = true;
+    });
   }
 
-  // Only update global blocks if something actually changed
-  if (blocksChanged || !window.transcriptBlocks) {
-    const blocks = [...completedBlocks];
-    if (currentBlock) {
-      blocks.push(currentBlock);
-    }
-    window.transcriptBlocks = blocks;
-  }
+  window.transcriptBlocks = blocks;
 
-  // Return both display text and whether blocks changed
-  const result = { blocksChanged };
-
-  // For backward compatibility, also return plain text
-  let ans = "";
-  for (let s in resultList) {
-    if (resultList[s] == "") {
-      continue;
-    }
-    ans += resultList[s] + "\n";
-  }
-
-  if (lastResult.length > 0) {
-    ans += lastResult + "\n";
-  }
-
-  // Clean the text
-  const cleanAns = cleanText(ans);
+  const lines = blocks
+    .map((block) => cleanText(`${block.text}${block.previewSuffix || ""}`))
+    .filter((line) => line.length > 0);
+  const cleanAns = cleanText(lines.join("\n"));
 
   // Check text size and clear if necessary
   const textToSend = checkAndClearText(cleanAns);
@@ -695,8 +766,10 @@ function getDisplayResult() {
     lastSentCaption = cleanAns.trim(); // Update lastSentCaption
   }
 
-  result.displayText = cleanAns;
-  return result;
+  return {
+    displayText: cleanAns,
+    blocks,
+  };
 }
 
 function cleanText(text) {
@@ -751,170 +824,145 @@ function getLastNWords(text, n) {
     return words.slice(words.length - n).join(" ");
   }
 
-  const cleanAns = cleanText(text);
-  const textToSend = checkAndClearText(cleanAns);
-
-  const captionText = cleanText(getNewCaptionText(cleanAns));
-  if (captionText) {
-    if (firebaseEnabled) {
-      sendCaptionToFirebase(textToSend);
-    }
-    if (sendToZoomEnabled) {
-      sendCaptionToZoom(captionText);
-    }
-    lastSentCaption = cleanAns.trim();
-  }
   return text;
 }
 
-function updateResultList(newResult) {
-  if (!subtitleMode) {
-    resultList.push(newResult);
+function getCombinedTranscriptText() {
+  const completedText = completedBlocks
+    .map((block) => cleanText(`${block.text}${block.previewSuffix || ""}`))
+    .filter(Boolean)
+    .join(" ");
+
+  const activeText = cleanText(
+    normalizeActiveUtteranceText(lastResult, { commitPreview: false })
+  );
+
+  return [completedText, activeText].filter(Boolean).join(" ").trim();
+}
+
+function renderTranscript() {
+  const isScrolledToBottom =
+    transcriptElement.scrollHeight - transcriptElement.clientHeight <=
+    transcriptElement.scrollTop + 10;
+
+  if (transcriptElement) {
+    if (subtitleMode) {
+      transcriptElement.innerText = cleanText(
+        getLastNWords(getCombinedTranscriptText(), maxWords)
+      );
+    } else {
+      const result = getDisplayResult();
+      transcriptElement.innerText = result.displayText;
+      const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
+        detail: { blocks: window.transcriptBlocks },
+      });
+      window.dispatchEvent(transcriptUpdateEvt);
+    }
+  }
+
+  if (isScrolledToBottom) {
+    transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  }
+}
+
+function finalizeCompletedBlock(blockId, text) {
+  if (!text.trim()) {
     return;
   }
-  let combinedText = resultList.join(" ") + " " + newResult;
-  let sentences = combinedText.trim().split(".").filter(Boolean);
-  let words = combinedText.trim().split(/\s+/);
 
-  if (words.length > maxWords) {
-    while (words.length > maxWords) {
-      let firstSentenceWords = sentences[0].trim().split(/\s+/).length;
-      if (firstSentenceWords > minSentenceLength) {
-        sentences.shift();
-      } else {
-        break;
-      }
-      combinedText = sentences.join(". ").trim();
-      words = combinedText.split(/\s+/);
-    }
-    resultList = sentences.map((sentence) => sentence.trim());
+  const newBlock = {
+    id: blockId,
+    text: cleanText(text),
+    isComplete: true,
+    timestamp: new Date().toISOString(),
+    previewSuffix: "",
+  };
+
+  const existingIndex = completedBlocks.findIndex((block) => block.id === blockId);
+  if (existingIndex >= 0) {
+    completedBlocks[existingIndex] = newBlock;
   } else {
-    resultList.push(newResult);
+    completedBlocks.push(newBlock);
+  }
+
+  refreshCompletedTextList();
+}
+
+function maybeSendPartialTranslation(text, utteranceId) {
+  if (!translationEnabled || !text.trim()) {
+    return;
+  }
+
+  const currentWordCount = text.trim().split(/\s+/).length;
+  if (currentWordCount < 6) {
+    return;
+  }
+
+  let textToTranslate = "";
+  if (partialTranslationUtteranceId !== utteranceId) {
+    textToTranslate = text.trim();
+  } else if (text.trim().startsWith(lastSentText)) {
+    const newPart = text.trim().substring(lastSentText.length).trim();
+    const newWordCount = newPart
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
+    if (newWordCount >= 6) {
+      textToTranslate = newPart;
+    }
+  } else {
+    textToTranslate = text.trim();
+  }
+
+  if (textToTranslate) {
+    sendTextToTranslationServer(textToTranslate, true);
+    lastSentText = text.trim();
+    partialTranslationUtteranceId = utteranceId;
   }
 }
 
-function handlePartialResult(result) {
-  if (result.length > 0 && lastResult != result) {
+function handlePartialResult(result, utteranceId = null) {
+  if (typeof result !== "string") {
+    return;
+  }
+
+  activeUtteranceId = utteranceId || activeUtteranceId || `current-${Date.now()}`;
+
+  if (result.length > 0 && lastResult !== result) {
     lastResult = result;
-
-    if (translationEnabled && result.trim()) {
-      const currentWordCount = result.trim().split(/\s+/).length;
-      if (currentWordCount >= 6) {
-        const currentText = result.trim();
-        let textToTranslate = "";
-        if (!lastSentText) {
-          textToTranslate = currentText;
-        } else if (currentText.startsWith(lastSentText)) {
-          const newPart = currentText.substring(lastSentText.length).trim();
-          const newWordCount = newPart
-            .split(/\s+/)
-            .filter((w) => w.length > 0).length;
-          if (newWordCount >= 6) {
-            textToTranslate = newPart;
-          }
-        } else {
-          textToTranslate = currentText;
-        }
-        if (textToTranslate) {
-          sendTextToTranslationServer(textToTranslate, true);
-          lastSentText = currentText;
-        }
-      }
-    }
+    const normalizedText = cleanText(
+      normalizeActiveUtteranceText(lastResult, { commitPreview: false })
+    );
+    maybeSendPartialTranslation(normalizedText, activeUtteranceId);
   }
 
-  const isScrolledToBottom =
-    transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-    transcriptElement.scrollTop + 10;
-
-  if (transcriptElement) {
-    if (subtitleMode) {
-      let combinedText = resultList.join(" ") + " " + lastResult;
-      let displayText = getLastNWords(combinedText, maxWords);
-      transcriptElement.innerText = cleanText(displayText);
-    } else {
-      const result = getDisplayResult();
-      transcriptElement.innerText = result.displayText;
-      if (result.blocksChanged) {
-        const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
-          detail: { blocks: window.transcriptBlocks },
-        });
-        window.dispatchEvent(transcriptUpdateEvt);
-      }
-    }
-  }
-
-  if (isScrolledToBottom) {
-    transcriptElement.scrollTop = transcriptElement.scrollHeight;
-  }
+  renderTranscript();
 }
 
-function handleFinalResult(finalText) {
-  if (typeof finalText !== "string") return;
+function handleFinalResult(finalText, utteranceId = null) {
+  if (typeof finalText !== "string") {
+    return;
+  }
+
+  activeUtteranceId = utteranceId || activeUtteranceId || `final-${Date.now()}`;
   lastResult = finalText;
 
-  if (lastResult.length > 8) {
-    if (translationEnabled && lastResult.trim()) {
-      const cleanedFinal = lastResult.trim();
-      let finalTextToTranslate = "";
-      if (!lastSentText) {
-        finalTextToTranslate = cleanedFinal;
-      } else if (cleanedFinal.startsWith(lastSentText)) {
-        const newFinalPart = cleanedFinal.substring(lastSentText.length).trim();
-        const newFinalWordCount = newFinalPart
-          .split(/\s+/)
-          .filter((w) => w.length > 0).length;
-        if (newFinalPart && newFinalWordCount > 0) {
-          finalTextToTranslate = newFinalPart;
-        }
-      } else if (cleanedFinal !== lastSentText) {
-        finalTextToTranslate = cleanedFinal;
-      }
-      if (finalTextToTranslate) {
-        sendTextToTranslationServer(finalTextToTranslate, false);
-      }
-    }
+  const normalizedFinal = cleanText(
+    normalizeActiveUtteranceText(lastResult, { commitPreview: true })
+  );
 
-    // Disabled silence-based line breaking: accumulate text continuously instead of creating new blocks
-    // Append to the last block if it exists, otherwise create the first block
-    if (resultList.length > 0) {
-      // Append to the last completed block with a space
-      resultList[resultList.length - 1] += " " + lastResult;
-    } else {
-      // No blocks yet, create the first one
-      resultList.push(lastResult);
-      prevSubList.push(lastResult);
+  if (normalizedFinal.length > 0) {
+    if (translationEnabled && normalizedFinal.trim()) {
+      sendTextToTranslationServer(normalizedFinal.trim(), false);
     }
-    // Clear lastResult so new partial results can start fresh, but don't create a new block
-    lastResult = "";
-    currentBlockId = null; // Reset current block ID so new partial results create a fresh incomplete block
-    lastSentText = "";
+    finalizeCompletedBlock(activeUtteranceId, normalizedFinal);
   }
 
-  const isScrolledToBottom =
-    transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-    transcriptElement.scrollTop + 10;
+  lastResult = "";
+  activeUtteranceId = null;
+  partialTranslationUtteranceId = null;
+  lastSentText = "";
 
-  if (transcriptElement) {
-    if (subtitleMode) {
-      let combinedText = resultList.join(" ") + " " + lastResult;
-      let displayText = getLastNWords(combinedText, maxWords);
-      transcriptElement.innerText = cleanText(displayText);
-    } else {
-      const result = getDisplayResult();
-      transcriptElement.innerText = result.displayText;
-      if (result.blocksChanged) {
-        const transcriptUpdateEvt2 = new CustomEvent("transcriptUpdate", {
-          detail: { blocks: window.transcriptBlocks },
-        });
-        window.dispatchEvent(transcriptUpdateEvt2);
-      }
-    }
-  }
-
-  if (isScrolledToBottom) {
-    transcriptElement.scrollTop = transcriptElement.scrollHeight;
-  }
+  renderTranscript();
 }
 
 // let flushTimer = null;
@@ -992,9 +1040,15 @@ transcriptElement.addEventListener("scroll", () => {
   }
 });
 
-// Initialize ASR Web Worker instead of loading WASM on the main thread
+// Initialize local workers instead of loading WASM on the main thread.
 let asrWorker = null;
 let asrWorkerInitialized = false;
+let vadWorker = null;
+let vadWorkerInitialized = false;
+const preferredLocalSegmentationMode = "vad";
+let localSegmentationMode = preferredLocalSegmentationMode;
+let localUtteranceCounter = 0;
+let vadActiveUtteranceId = null;
 
 // SharedArrayBuffer audio ring buffer (optional fast path)
 let sabSupported =
@@ -1008,7 +1062,7 @@ let usingSharedBuffer = false;
 function setupSharedRingBufferIfPossible() {
   if (!sabSupported) return false;
   // When using WebSocket ASR, avoid SAB so frames arrive via port.onmessage
-  if (useWebSocketAsr) {
+  if (useWebSocketAsr || localSegmentationMode === "vad") {
     usingSharedBuffer = false;
     return false;
   }
@@ -1057,35 +1111,163 @@ function setupSharedRingBufferIfPossible() {
   }
 }
 
-function setupAsrWorker() {
+function updateLocalWorkerReadyState() {
+  const localReady =
+    asrWorkerInitialized &&
+    (localSegmentationMode !== "vad" || vadWorkerInitialized);
+
+  if (localReady) {
+    if (startBtn) startBtn.disabled = false;
+    const event = new Event("modelInitialized");
+    window.dispatchEvent(event);
+    setupSharedRingBufferIfPossible();
+  }
+}
+
+function teardownAsrWorker() {
+  if (!asrWorker) {
+    return;
+  }
+
+  try {
+    asrWorker.postMessage({ type: "free" });
+  } catch (_) {}
+
+  try {
+    asrWorker.terminate();
+  } catch (_) {}
+
+  asrWorker = null;
+  asrWorkerInitialized = false;
+}
+
+function teardownVadWorker() {
+  if (!vadWorker) {
+    vadWorkerInitialized = false;
+    vadActiveUtteranceId = null;
+    return;
+  }
+
+  try {
+    vadWorker.postMessage({ type: "free" });
+  } catch (_) {}
+
+  try {
+    vadWorker.terminate();
+  } catch (_) {}
+
+  vadWorker = null;
+  vadWorkerInitialized = false;
+  vadActiveUtteranceId = null;
+}
+
+function fallbackToLegacyLocalMode(reason) {
+  console.warn("Falling back to legacy local ASR mode", reason);
+  localSegmentationMode = "legacy";
+  usingSharedBuffer = false;
+  teardownVadWorker();
+  teardownAsrWorker();
+  setupLocalWorkers("legacy");
+}
+
+function setupVadWorker() {
+  if (vadWorker || localSegmentationMode !== "vad") {
+    return;
+  }
+
+  try {
+    vadWorker = new Worker("/onnx/vad-worker.js");
+    vadWorker.onmessage = (e) => {
+      const msg = e.data || {};
+
+      if (msg.type === "initialized") {
+        vadWorkerInitialized = true;
+        updateLocalWorkerReadyState();
+        return;
+      }
+
+      if (msg.type === "speech_start") {
+        if (!vadActiveUtteranceId) {
+          localUtteranceCounter += 1;
+          vadActiveUtteranceId = `utt-${localUtteranceCounter}`;
+          asrWorker?.postMessage({
+            type: "begin_utterance",
+            utteranceId: vadActiveUtteranceId,
+          });
+        }
+        return;
+      }
+
+      if (msg.type === "speech_end") {
+        if (vadActiveUtteranceId) {
+          asrWorker?.postMessage({ type: "end_utterance" });
+          vadActiveUtteranceId = null;
+        }
+        return;
+      }
+
+      if (msg.type === "error") {
+        fallbackToLegacyLocalMode(msg.error || msg.stage || "vad-error");
+      }
+    };
+
+    vadWorker.postMessage({
+      type: "init",
+      config: {
+        sileroVad: {
+          threshold: 0.5,
+          minSilenceDuration: 0.4,
+          minSpeechDuration: 0.25,
+          maxSpeechDuration: 20,
+          windowSize: 512,
+        },
+      },
+    });
+  } catch (e) {
+    fallbackToLegacyLocalMode(String(e));
+  }
+}
+
+function setupLocalWorkers(mode = preferredLocalSegmentationMode) {
   if (asrWorker) return;
+
+  localSegmentationMode = mode;
+  vadActiveUtteranceId = null;
+
   try {
     asrWorker = new Worker("/onnx/asr-worker.js");
     asrWorker.onmessage = (e) => {
       const msg = e.data || {};
       if (msg.type === "initialized") {
         asrWorkerInitialized = true;
-        if (startBtn) startBtn.disabled = false;
-        const event = new Event("modelInitialized");
-        window.dispatchEvent(event);
-        // Attempt SAB hookup once worker is ready
-        setupSharedRingBufferIfPossible();
+        if (localSegmentationMode === "vad") {
+          setupVadWorker();
+        } else {
+          updateLocalWorkerReadyState();
+        }
       } else if (msg.type === "partial") {
-        handlePartialResult(msg.text || "");
+        handlePartialResult(msg.text || "", msg.utteranceId || null);
       } else if (msg.type === "final") {
-        handleFinalResult(msg.text || "");
+        handleFinalResult(msg.text || "", msg.utteranceId || null);
       } else if (msg.type === "error") {
-        console.error("ASR worker error:", msg.error);
+        if (localSegmentationMode === "vad") {
+          fallbackToLegacyLocalMode(msg.error || msg.stage || "asr-error");
+        } else {
+          console.error("ASR worker error:", msg.error);
+        }
       }
     };
-    // Provide initial config
-    asrWorker.postMessage({ type: "init", expectedSampleRate: 16000 });
+    asrWorker.postMessage({
+      type: "init",
+      expectedSampleRate: 16000,
+      mode: localSegmentationMode,
+    });
   } catch (e) {
     console.error("Failed to start ASR worker", e);
   }
 }
 
-setupAsrWorker();
+setupLocalWorkers();
 
 let audioCtx;
 let mediaStream;
@@ -1157,12 +1339,12 @@ async function setupAudioGraph(stream) {
     const samples =
       data instanceof Float32Array ? data : new Float32Array(data);
 
-    // Route audio depending on ASR mode
+    // Route audio depending on ASR mode.
     if (useWebSocketAsr) {
-      // Ensure a WS stream is active; if not, try to start it
+      // Ensure a WS stream is active; if not, try to start it.
       startWsStreamIfNeeded();
       if (wsAsr && wsAsrReady && wsStreamActive) {
-        // Convert Float32 [-1,1] to 16-bit PCM LE and send
+        // Convert Float32 [-1,1] to 16-bit PCM LE and send.
         const pcm = new Int16Array(samples.length);
         for (let i = 0; i < samples.length; ++i) {
           let s = samples[i];
@@ -1173,103 +1355,30 @@ async function setupAudioGraph(stream) {
         try {
           wsAsr.send(pcm.buffer);
         } catch (e) {
-          // If sending fails because stream isn't active, attempt to start and skip this frame
+          // If sending fails because stream isn't active, attempt to restart it.
           wsStreamActive = false;
           startWsStreamIfNeeded();
         }
       }
     } else if (asrWorkerInitialized && asrWorker && !usingSharedBuffer) {
-      // Transfer the buffer to avoid copies
-      asrWorker.postMessage({ type: "audio", samples }, [samples.buffer]);
-    }
-
-    const isScrolledToBottom =
-      transcriptElement.scrollHeight - transcriptElement.clientHeight <=
-      transcriptElement.scrollTop + 10;
-
-    if (transcriptElement) {
-      if (subtitleMode) {
-        let combinedText = resultList.join(" ") + " " + lastResult;
-        let displayText = getLastNWords(combinedText, maxWords);
-        transcriptElement.innerText = cleanText(displayText);
+      if (localSegmentationMode === "vad" && vadWorkerInitialized && vadWorker) {
+        const asrSamples = new Float32Array(samples);
+        const vadSamples = new Float32Array(samples);
+        asrWorker.postMessage({ type: "audio", samples: asrSamples }, [
+          asrSamples.buffer,
+        ]);
+        vadWorker.postMessage({ type: "audio", samples: vadSamples }, [
+          vadSamples.buffer,
+        ]);
       } else {
-        const result = getDisplayResult();
-        transcriptElement.innerText = result.displayText;
-        if (result.blocksChanged) {
-          const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
-            detail: { blocks: window.transcriptBlocks },
-          });
-          window.dispatchEvent(transcriptUpdateEvt);
-        }
+        const workerSamples = new Float32Array(samples);
+        asrWorker.postMessage({ type: "audio", samples: workerSamples }, [
+          workerSamples.buffer,
+        ]);
       }
     }
 
-    if (isScrolledToBottom) {
-      transcriptElement.scrollTop = transcriptElement.scrollHeight;
-    }
-
-    // Function to get the last N words from a text
-    function getLastNWords(text, n) {
-      let words = text.trim().split(/\s+/);
-      if (words.length > n) {
-        return words.slice(words.length - n).join(" ");
-      }
-
-      const cleanAns = cleanText(text);
-
-      // Check text size and clear if necessary
-      const textToSend = checkAndClearText(cleanAns);
-
-      // Send captions if new words are detected
-      const captionText = cleanText(getNewCaptionText(cleanAns));
-      if (captionText) {
-        if (firebaseEnabled) {
-          sendCaptionToFirebase(textToSend);
-        }
-        if (sendToZoomEnabled) {
-          sendCaptionToZoom(captionText);
-        }
-        lastSentCaption = cleanAns.trim(); // Update lastSentCaption
-      }
-      return text;
-    }
-
-    // Function to update the resultList to maintain a rolling window of 24 words
-    function updateResultList(newResult) {
-      if (!subtitleMode) {
-        resultList.push(newResult);
-        return;
-      }
-      // Combine existing resultList and newResult into a single string
-      let combinedText = resultList.join(" ") + " " + newResult;
-      let sentences = combinedText.trim().split(".").filter(Boolean); // Split by sentences
-
-      let words = combinedText.trim().split(/\s+/);
-
-      // Trim the list if it exceeds the maxWords limit
-      if (words.length > maxWords) {
-        // Remove the first sentence until we're back under the maxWords limit
-        while (words.length > maxWords) {
-          let firstSentenceWords = sentences[0].trim().split(/\s+/).length;
-
-          // Only remove the first sentence if it has more than minSentenceLength words
-          if (firstSentenceWords > minSentenceLength) {
-            sentences.shift(); // Remove the first sentence
-          } else {
-            break;
-          }
-
-          // Recalculate words after removing the sentence
-          combinedText = sentences.join(". ").trim();
-          words = combinedText.split(/\s+/);
-        }
-
-        // Set the updated resultList to the remaining sentences
-        resultList = sentences.map((sentence) => sentence.trim()); // Add periods back to the end of each sentence
-      } else {
-        resultList.push(newResult);
-      }
-    }
+    renderTranscript();
 
     let buf = new Int16Array(samples.length);
     for (let i = 0; i < samples.length; ++i) {
@@ -1394,6 +1503,16 @@ function stopRecordingInternal() {
       wsAsrSendJson({ event: "end" });
       wsStreamActive = false;
     } catch (_) {}
+  } else if (localSegmentationMode === "vad") {
+    try {
+      vadWorker?.postMessage({ type: "flush" });
+    } catch (_) {}
+    if (vadActiveUtteranceId) {
+      try {
+        asrWorker?.postMessage({ type: "force_finalize" });
+      } catch (_) {}
+      vadActiveUtteranceId = null;
+    }
   }
 
   // Disconnect audio graph
