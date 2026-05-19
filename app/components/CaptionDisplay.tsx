@@ -96,8 +96,6 @@ export default function CaptionDisplay({
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col" role="main">
-      <div id="transcriptText" className="hidden" />
-
       <div
         ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain scroll-smooth px-4 pb-36 sm:px-6 md:pt-16"

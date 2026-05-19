@@ -36,3 +36,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .cursorrules
+.next.stale-1777362284/types/routes.d.ts
+/.next.stale-1777362284

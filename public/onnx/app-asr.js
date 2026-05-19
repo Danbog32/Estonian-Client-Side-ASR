@@ -29,6 +29,27 @@ const VAD_END_GRACE_MS = 220;
 const SPLIT_SUFFIX_FRAGMENT_RE = /^([bcdfghjklmnpqrstvwxyzšž])(?:\s+|$)([\s\S]*)$/;
 let lastRenderedTranscriptText = "";
 let lastTranscriptBlocksSignature = "[]";
+let asrEventSequence = 0;
+
+function createEmptyAsrEvent() {
+  return {
+    type: "idle",
+    utteranceId: null,
+    partialText: "",
+    finalText: "",
+    normalizedText: "",
+    isFinal: false,
+    sequence: 0,
+    timestamp: null,
+    tokenTimestamps: null,
+    wordTimestamps: null,
+    sourceType: "microphone",
+    sourceTimeSec: null,
+    sourceDurationSec: null,
+  };
+}
+
+let latestAsrEvent = createEmptyAsrEvent();
 
 // Variables for API settings
 let apiToken = ""; // Store API token from the settings
@@ -590,6 +611,38 @@ function resetTranscriptState() {
   window.transcriptBlocks = [];
   lastRenderedTranscriptText = "";
   lastTranscriptBlocksSignature = "[]";
+  latestAsrEvent = createEmptyAsrEvent();
+}
+
+function updateLatestAsrEvent({
+  type = "idle",
+  utteranceId = null,
+  partialText = "",
+  finalText = "",
+  normalizedText = "",
+  isFinal = false,
+  tokenTimestamps = null,
+  wordTimestamps = null,
+  sourceType = "microphone",
+  sourceTimeSec = null,
+  sourceDurationSec = null,
+} = {}) {
+  asrEventSequence += 1;
+  latestAsrEvent = {
+    type,
+    utteranceId,
+    partialText,
+    finalText,
+    normalizedText,
+    isFinal,
+    sequence: asrEventSequence,
+    timestamp: new Date().toISOString(),
+    tokenTimestamps,
+    wordTimestamps,
+    sourceType,
+    sourceTimeSec,
+    sourceDurationSec,
+  };
 }
 
 function refreshCompletedTextList() {
@@ -701,9 +754,24 @@ clearBtn.onclick = function () {
   resetTranscriptState();
   transcriptElement.innerHTML = "";
 
+  const clearedTranscriptDetail = {
+    blocks: [],
+    completedText: "",
+    activeText: "",
+    combinedText: "",
+    activeUtteranceId: null,
+    sourceType: "microphone",
+    sourceTimeSec: null,
+    sourceDurationSec: null,
+    asr: {
+      ...createEmptyAsrEvent(),
+      type: "reset",
+    },
+  };
+
   // Trigger React component update
   const transcriptUpdateEvt = new CustomEvent("transcriptUpdate", {
-    detail: { blocks: [] },
+    detail: clearedTranscriptDetail,
   });
   window.dispatchEvent(transcriptUpdateEvt);
 
@@ -766,7 +834,7 @@ clearBtn.onclick = function () {
 
   // Also clear transcript blocks in the UI after worker reset
   const transcriptClearedEvt = new CustomEvent("transcriptUpdate", {
-    detail: { blocks: [] },
+    detail: clearedTranscriptDetail,
   });
   window.dispatchEvent(transcriptClearedEvt);
 };
@@ -786,6 +854,13 @@ function getDisplayResult() {
     ...block,
     previewSuffix: block.previewSuffix || "",
   }));
+  const completedText = cleanText(
+    blocks
+      .filter((block) => block.isComplete)
+      .map((block) => cleanText(`${block.text}${block.previewSuffix || ""}`))
+      .filter(Boolean)
+      .join("\n")
+  );
 
   if (currentText) {
     blocks.push({
@@ -822,6 +897,14 @@ function getDisplayResult() {
   return {
     displayText: cleanAns,
     blocks,
+    completedText,
+    activeText: currentText,
+    combinedText: cleanAns,
+    activeUtteranceId,
+    sourceType: "microphone",
+    sourceTimeSec: null,
+    sourceDurationSec: null,
+    asr: latestAsrEvent,
   };
 }
 
@@ -904,9 +987,22 @@ function updateTranscriptElementText(nextText) {
   return true;
 }
 
-function dispatchTranscriptUpdateIfChanged(blocks) {
-  const safeBlocks = Array.isArray(blocks) ? blocks : [];
-  const nextSignature = JSON.stringify(safeBlocks);
+function dispatchTranscriptUpdateIfChanged(payload) {
+  const safePayload =
+    payload && typeof payload === "object"
+      ? payload
+      : {
+          blocks: Array.isArray(payload) ? payload : [],
+          completedText: "",
+          activeText: "",
+          combinedText: "",
+          activeUtteranceId: null,
+          sourceType: "microphone",
+          sourceTimeSec: null,
+          sourceDurationSec: null,
+          asr: latestAsrEvent,
+        };
+  const nextSignature = JSON.stringify(safePayload);
   if (lastTranscriptBlocksSignature === nextSignature) {
     return false;
   }
@@ -914,7 +1010,7 @@ function dispatchTranscriptUpdateIfChanged(blocks) {
   lastTranscriptBlocksSignature = nextSignature;
   window.dispatchEvent(
     new CustomEvent("transcriptUpdate", {
-      detail: { blocks: safeBlocks },
+      detail: safePayload,
     })
   );
   return true;
@@ -933,7 +1029,7 @@ function renderTranscript() {
     } else {
       const result = getDisplayResult();
       updateTranscriptElementText(result.displayText);
-      dispatchTranscriptUpdateIfChanged(window.transcriptBlocks);
+      dispatchTranscriptUpdateIfChanged(result);
     }
   }
 
@@ -1003,14 +1099,28 @@ function handlePartialResult(result, utteranceId = null) {
   }
 
   activeUtteranceId = utteranceId || activeUtteranceId || `current-${Date.now()}`;
+  let normalizedText = "";
 
   if (result.length > 0 && lastResult !== result) {
     lastResult = result;
-    const normalizedText = cleanText(
+    normalizedText = cleanText(
       normalizeActiveUtteranceText(lastResult, { commitPreview: false })
     );
     maybeSendPartialTranslation(normalizedText, activeUtteranceId);
+  } else if (result.length > 0) {
+    normalizedText = cleanText(
+      normalizeActiveUtteranceText(lastResult, { commitPreview: false })
+    );
   }
+
+  updateLatestAsrEvent({
+    type: "partial",
+    utteranceId: activeUtteranceId,
+    partialText: normalizedText,
+    finalText: "",
+    normalizedText,
+    isFinal: false,
+  });
 
   renderTranscript();
 }
@@ -1026,6 +1136,15 @@ function handleFinalResult(finalText, utteranceId = null) {
   const normalizedFinal = cleanText(
     normalizeActiveUtteranceText(lastResult, { commitPreview: true })
   );
+
+  updateLatestAsrEvent({
+    type: "final",
+    utteranceId: activeUtteranceId,
+    partialText: "",
+    finalText: normalizedFinal,
+    normalizedText: normalizedFinal,
+    isFinal: true,
+  });
 
   if (normalizedFinal.length > 0) {
     if (translationEnabled && normalizedFinal.trim()) {

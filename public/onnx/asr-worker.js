@@ -16,6 +16,9 @@ let paused = false;
 let segmentationMode = "vad";
 let legacyUtteranceCounter = 0;
 let currentUtteranceId = null;
+let currentSourceType = "microphone";
+let currentSourceTimeSec = null;
+let currentSourceDurationSec = null;
 
 let sabEnabled = false;
 let ringData = null;
@@ -164,6 +167,17 @@ function resetStreamState() {
   lastText = "";
   lastDecodeTs = 0;
   currentUtteranceId = null;
+  currentSourceType = "microphone";
+  currentSourceTimeSec = null;
+  currentSourceDurationSec = null;
+}
+
+function updateSourceContext(message = {}) {
+  currentSourceType = message.sourceType === "file" ? "file" : "microphone";
+  currentSourceTimeSec =
+    typeof message.sourceTimeSec === "number" ? message.sourceTimeSec : null;
+  currentSourceDurationSec =
+    typeof message.sourceDurationSec === "number" ? message.sourceDurationSec : null;
 }
 
 function emitPartial(result) {
@@ -182,6 +196,9 @@ function emitPartial(result) {
       type: "partial",
       utteranceId: currentUtteranceId,
       text: result,
+      sourceType: currentSourceType,
+      sourceTimeSec: currentSourceTimeSec,
+      sourceDurationSec: currentSourceDurationSec,
     });
     return;
   }
@@ -195,6 +212,9 @@ function emitPartial(result) {
     type: "partial",
     utteranceId: currentUtteranceId,
     text: result,
+    sourceType: currentSourceType,
+    sourceTimeSec: currentSourceTimeSec,
+    sourceDurationSec: currentSourceDurationSec,
   });
 }
 
@@ -225,8 +245,11 @@ function decodeReadyFrames() {
   return result;
 }
 
-function finalizeCurrentUtterance(forceInputFinished) {
+function finalizeCurrentUtterance(forceInputFinished, shouldNotifyFlush = false) {
   if (!recognizer || !recognizerStream) {
+    if (shouldNotifyFlush) {
+      self.postMessage({ type: "flush_complete" });
+    }
     return;
   }
 
@@ -238,6 +261,9 @@ function finalizeCurrentUtterance(forceInputFinished) {
 
   if (!activeUtteranceId) {
     resetStreamState();
+    if (shouldNotifyFlush) {
+      self.postMessage({ type: "flush_complete" });
+    }
     return;
   }
 
@@ -261,13 +287,19 @@ function finalizeCurrentUtterance(forceInputFinished) {
       type: "final",
       utteranceId: activeUtteranceId,
       text: finalText,
+      sourceType: currentSourceType,
+      sourceTimeSec: currentSourceTimeSec,
+      sourceDurationSec: currentSourceDurationSec,
     });
   }
 
   resetStreamState();
+  if (shouldNotifyFlush) {
+    self.postMessage({ type: "flush_complete" });
+  }
 }
 
-function processSamples(samples) {
+function processSamples(samples, options = {}) {
   if (paused || !recognizer) {
     return;
   }
@@ -284,7 +316,7 @@ function processSamples(samples) {
       ? performance.now()
       : Date.now();
 
-  if (now - lastDecodeTs < 50) {
+  if (!options.forceDecode && now - lastDecodeTs < 50) {
     return;
   }
 
@@ -343,22 +375,28 @@ self.onmessage = function (e) {
       break;
     }
     case "begin_utterance": {
+      updateSourceContext(msg);
       currentUtteranceId = msg.utteranceId || currentUtteranceId;
       if (currentUtteranceId && lastText) {
         self.postMessage({
           type: "partial",
           utteranceId: currentUtteranceId,
           text: lastText,
+          sourceType: currentSourceType,
+          sourceTimeSec: currentSourceTimeSec,
+          sourceDurationSec: currentSourceDurationSec,
         });
       }
       break;
     }
     case "end_utterance": {
-      finalizeCurrentUtterance(true);
+      updateSourceContext(msg);
+      finalizeCurrentUtterance(true, true);
       break;
     }
     case "force_finalize": {
-      finalizeCurrentUtterance(true);
+      updateSourceContext(msg);
+      finalizeCurrentUtterance(true, true);
       break;
     }
     case "sab_setup": {
@@ -378,12 +416,15 @@ self.onmessage = function (e) {
       break;
     }
     case "audio": {
+      updateSourceContext(msg);
       let samples = msg.samples;
       if (!(samples instanceof Float32Array) && samples?.buffer) {
         samples = new Float32Array(samples);
       }
       if (samples && samples.length) {
-        processSamples(samples);
+        processSamples(samples, {
+          forceDecode: Boolean(msg.forceDecode),
+        });
       }
       break;
     }

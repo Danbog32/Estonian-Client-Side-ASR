@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Script from "next/script";
 import { useSettings } from "../providers/SettingsContext";
 import CaptionDisplay from "./CaptionDisplay";
 import GreetingLoading from "./GreetingLoading";
 import TopBar from "./TopBar";
 import FloatingMicButton from "./FloatingMicButton";
 import SettingsDrawer from "./SettingsDrawer";
+import AsrScriptBridge from "./AsrScriptBridge";
 
 const translations = {
   en: {
@@ -90,11 +90,7 @@ export default function Asr() {
       className="flex min-h-0 flex-col h-dvh w-full overflow-hidden transition-colors duration-200"
       style={{ backgroundColor }}
     >
-      <Script
-        src="onnx/app-asr.js"
-        strategy="afterInteractive"
-        onLoad={() => console.log("app-asr loaded")}
-      />
+      <AsrScriptBridge onLoad={() => console.log("app-asr loaded")} />
 
       {loading && <GreetingLoading loadingMessage={loadingMessage} />}
 
@@ -131,12 +127,6 @@ export default function Asr() {
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
-
-      {/* Hidden elements that app-asr.js attaches handlers to */}
-      <div id="sound-clips" className="hidden" />
-      <button id="startBtn" disabled className="hidden" />
-      <button id="stopBtn" disabled className="hidden" />
-      <button id="clearBtn" className="hidden" />
     </div>
   );
 }
