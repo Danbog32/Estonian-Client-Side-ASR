@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -26,6 +26,17 @@ import type {
 import { useAudioFileAlignmentController } from "./useAudioFileAlignmentController";
 
 type SourceMode = "microphone" | "file";
+
+interface BenchmarkPredictionRecord {
+  timeSec: number;
+  predictedWordIndex: number;
+  confidence: number;
+  matchedPhrase: string;
+  asrText: string;
+  mode: string;
+  sourceType: SourceMode;
+  recordedAt: string;
+}
 
 const DEMO_TEXT = `Täna loen ma seda teksti rahulikult ja järjest. Süsteem kuulab mikrofoni, võrdleb öeldud sõnu etteantud tekstiga ning tõstab esile koha, kus ma parajasti olen.`;
 
@@ -127,6 +138,18 @@ function formatSeconds(value: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function downloadJson(fileName: string, value: unknown) {
+  const blob = new Blob([`${JSON.stringify(value, null, 2)}\n`], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function TextAlignmentClient() {
   const { backgroundColor, textColor, language } = useSettings();
   const t = translations[language] ?? translations.en;
@@ -144,6 +167,12 @@ export default function TextAlignmentClient() {
   const [micCombinedTranscriptText, setMicCombinedTranscriptText] =
     useState("");
   const [micAlignment, setMicAlignment] = useState(INITIAL_ALIGNMENT_STATE);
+  const [benchmarkRecords, setBenchmarkRecords] = useState<
+    BenchmarkPredictionRecord[]
+  >([]);
+  const lastBenchmarkRecordKeyRef = useRef("");
+  const latestAlignmentRef = useRef(INITIAL_ALIGNMENT_STATE);
+  const latestAsrTextRef = useRef("");
 
   const referenceWords = useMemo(
     () => parseReferenceText(referenceText),
@@ -219,6 +248,103 @@ export default function TextAlignmentClient() {
       ? (fileController.detail.asr ?? { type: "idle" })
       : micAsrEvent;
 
+  const activeAsrText =
+    activeAsrEvent.normalizedText ||
+    activeAsrEvent.partialText ||
+    activeAsrEvent.finalText ||
+    "";
+
+  latestAlignmentRef.current = activeAlignment;
+  latestAsrTextRef.current = activeAsrText;
+
+  const appendBenchmarkRecord = () => {
+    if (sourceMode !== "file" || referenceWords.length === 0) {
+      return;
+    }
+
+    const timeSec =
+      fileController.audioRef.current?.currentTime ??
+      fileController.modeState.currentTimeSec;
+    const roundedTime = Math.round(timeSec * 10) / 10;
+
+    const latestAlignment = latestAlignmentRef.current;
+    const latestAsrText = latestAsrTextRef.current;
+
+    if (roundedTime === 0 && !latestAsrText && !latestAlignment.hasLock) {
+      return;
+    }
+
+    const recordKey = [
+      roundedTime,
+      latestAlignment.currentWordIndex,
+      latestAlignment.confidence.toFixed(3),
+      latestAsrText,
+    ].join("|");
+
+    if (recordKey === lastBenchmarkRecordKeyRef.current) {
+      return;
+    }
+
+    lastBenchmarkRecordKeyRef.current = recordKey;
+    setBenchmarkRecords((previousRecords) => [
+      ...previousRecords,
+      {
+        timeSec: roundedTime,
+        predictedWordIndex: latestAlignment.currentWordIndex,
+        confidence: latestAlignment.confidence,
+        matchedPhrase: latestAlignment.matchedPhrase,
+        asrText: latestAsrText,
+        mode: latestAlignment.mode,
+        sourceType: sourceMode,
+        recordedAt: new Date().toISOString(),
+      },
+    ]);
+  };
+
+  useEffect(() => {
+    appendBenchmarkRecord();
+    // This intentionally samples alignment updates, not every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeAlignment.currentWordIndex,
+    activeAlignment.confidence,
+    activeAlignment.matchedPhrase,
+    activeAlignment.mode,
+    activeAsrText,
+    sourceMode,
+  ]);
+
+  useEffect(() => {
+    if (sourceMode !== "file" || fileController.modeState.status !== "playing") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      appendBenchmarkRecord();
+    }, 100);
+
+    return () => window.clearInterval(interval);
+    // This intentionally samples playback every 100ms while the file is playing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceMode, fileController.modeState.status]);
+
+  const handleClearBenchmarkLog = () => {
+    lastBenchmarkRecordKeyRef.current = "";
+    setBenchmarkRecords([]);
+  };
+
+  const handleExportBenchmarkLog = () => {
+    const fileName = fileController.modeState.fileName || "text-alignment";
+    const id = fileName.replace(/\.[^.]+$/, "");
+    downloadJson(`${id}.json`, {
+      id,
+      audioFileName: fileController.modeState.fileName,
+      referenceText,
+      exportedAt: new Date().toISOString(),
+      records: benchmarkRecords,
+    });
+  };
+
   const fileStatusLabel =
     fileController.modeState.status === "decoding"
       ? t.fileDecoding
@@ -256,6 +382,7 @@ export default function TextAlignmentClient() {
   const handleReset = () => {
     if (sourceMode === "file") {
       fileController.reset();
+      handleClearBenchmarkLog();
       return;
     }
 
@@ -271,6 +398,7 @@ export default function TextAlignmentClient() {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    handleClearBenchmarkLog();
     await fileController.loadFile(file);
     event.target.value = "";
   };
@@ -447,6 +575,27 @@ export default function TextAlignmentClient() {
                     {fileController.modeState.errorMessage}
                   </p>
                 )}
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportBenchmarkLog}
+                    disabled={benchmarkRecords.length === 0}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:text-white/30"
+                  >
+                    Export benchmark log
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearBenchmarkLog}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                  >
+                    Clear benchmark log
+                  </button>
+                  <span className="text-xs text-white/45">
+                    {benchmarkRecords.length} records
+                  </span>
+                </div>
               </div>
             )}
 

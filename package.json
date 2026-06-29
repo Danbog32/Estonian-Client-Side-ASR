@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "benchmark:text-alignment": "node scripts/text-alignment-benchmark.mjs",
+    "benchmark:text-alignment:discover": "node scripts/text-alignment-benchmark.mjs discover",
+    "benchmark:text-alignment:ground-truth": "node scripts/text-alignment-benchmark.mjs ground-truth",
+    "benchmark:text-alignment:evaluate": "node scripts/text-alignment-benchmark.mjs evaluate",
+    "benchmark:text-alignment:oracle-predictions": "node scripts/text-alignment-benchmark.mjs oracle-predictions"
   },
   "dependencies": {
     "@heroui/react": "2.6.14",
@@ -27,6 +32,7 @@
     "autoprefixer": "^10.4.14",
     "eslint": "^8",
     "eslint-config-next": "15.0.0",
+    "playwright": "^1.61.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
