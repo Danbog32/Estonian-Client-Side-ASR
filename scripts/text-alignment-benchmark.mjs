@@ -319,12 +319,20 @@ function median(values) {
   return (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+function isReliablePrediction(record) {
+  return (
+    record &&
+    record.mode !== "lost" &&
+    typeof record.predictedWordIndex === "number"
+  );
+}
+
 function computeTransitionDelays(words, records) {
   const delays = [];
   for (const word of words.slice(1)) {
     const transition = records.find(
       (record) =>
-        typeof record.predictedWordIndex === "number" &&
+        isReliablePrediction(record) &&
         record.timeSec >= word.startSec &&
         record.predictedWordIndex >= word.index,
     );
@@ -357,7 +365,7 @@ function evaluateOne(groundTruth, prediction) {
 
     samples += 1;
     const pred = findPrediction(records, timeSec);
-    if (!pred || typeof pred.predictedWordIndex !== "number") {
+    if (!isReliablePrediction(pred)) {
       noLock += 1;
       currentStuckRun = 0;
       continue;
