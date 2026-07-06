@@ -38,3 +38,10 @@ next-env.d.ts
 .cursorrules
 .next.stale-1777362284/types/routes.d.ts
 /.next.stale-1777362284
+
+# local text-alignment benchmark artifacts
+/benchmarks/text-alignment-p3641f0/
+/benchmarks/text-alignment/dataset.csv
+/benchmarks/text-alignment/ground-truth/
+/benchmarks/text-alignment/predictions*/
+/benchmarks/text-alignment/results*/
